@@ -33,6 +33,36 @@ along with RCOpt.  If not, see <http://www.gnu.org/licenses/>.
 static char _orsign[] = { '|', 0 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+bool write_scores(
+	ofstream &ofs,
+	s_seq *seqs[],
+	int num_seqs,
+	s_motif *motifs[],
+	int num_motifs,
+	const char *experiment_name )
+{
+
+	ofs << "Gene" << char(9) << "Status";
+
+	int i;
+	for( i = 0; i < num_motifs; i ++ )
+		ofs << char(9) << motifs[ i ] ->name << "|opt" << experiment_name;
+	ofs << endl;
+	
+	for( i = 0; i < num_seqs; i ++ )
+	{
+		ofs << seqs[ i ] ->name << char(9) << seqs[ i ] ->positive;
+		
+		int j;
+		for( j = 0; j < num_motifs; j ++ )
+			ofs << char(9) << seqs[ i ] ->hmm_scores[ j ];
+		ofs << endl;
+	}
+	
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 bool write_PFMs(
 	ofstream &ofs,
 	s_motif *motifs[],

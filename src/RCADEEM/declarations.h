@@ -28,6 +28,7 @@ along with RCOpt.  If not, see <http://www.gnu.org/licenses/>.
 
 
 double normal_cum_p( double z );
+double cumhyper(int i, int s1, int s2, int N);
 bool read_arguments( int argc, char* argv[] );
 void print_arguments();
 void print_commandline_format();
@@ -46,11 +47,13 @@ bool read_FASTA( ifstream &ifs, s_seq *seqs[], int *num_seqs, char this_EOL );
 
 bool generate_PWMs( s_motif *motifs[], int num_motifs, double enrichment_fold );
 void scan_sequences( s_seq *seqs[], int num_seqs, double *PFM[], int PFM_width, int direction );
+int calculate_enrichments( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
 
 double get_correlation( double *PWM1[], double *PWM2[], int PWM_width, double *mean, double *stdev );
 
 void optimize_PFMs( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
 
+bool write_scores( ofstream &ofs, s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs, const char *experiment_name );
 bool write_PFMs( ofstream &ofs, s_motif *motifs[], int num_motifs, const char *experiment_name, bool opt_only );
 void write_opt_MEME( ofstream &ofs, s_motif *motif, const char *experiment_name );
 void write_report( ofstream &ofs, s_motif *motifs[], int num_motifs, const char *experiment_name );

@@ -80,20 +80,16 @@ int main( int argc, char* argv[] )
 	if( !open_output( ofs_opt_PFM, __output_file, ".opt.PFM.txt" ) )
 		return 1;
 
-	ofstream ofs_opt_PFM_MEME;
-	if( !open_output( ofs_opt_PFM_MEME, __output_file, ".opt.PFM.meme.txt" ) )
-		return 1;
-
 	ofstream ofs_ps;
 	if( !open_output( ofs_ps, __output_file, ".ps" ) )
 		return 1;
 
-	ofstream ofs_opt_ps;
-	if( !open_output( ofs_opt_ps, __output_file, ".opt.ps" ) )
-		return 1;
-
 	ofstream ofs_report;
 	if( !open_output( ofs_report, __output_file, ".report.txt" ) )
+		return 1;
+
+	ofstream ofs_scores;
+	if( !open_output( ofs_scores, __output_file, ".opt.scores.txt" ) )
 		return 1;
 
 	//******************* open the result file
@@ -126,9 +122,12 @@ int main( int argc, char* argv[] )
 	cout << "Generating PWMs..." << endl;
 	if( !generate_PWMs( motifs, num_motifs, *__enrichment_fold ) )
 		return 1;
+		
+	cout << "Finding enriched PFMs..." << endl;
+	int num_enriched = calculate_enrichments( seqs, num_seqs, motifs, num_motifs );
 	
-	cout << "Optimizing PWMs..." << endl;
-	optimize_PFMs( seqs, num_seqs, motifs, num_motifs );
+	cout << "Optimizing " << num_enriched << " PFMs with significant enrichment at FDR<0.01 ..." << endl;
+	optimize_PFMs( seqs, num_seqs, motifs, num_enriched );
 	
 	//******************* write the output files
 	cout << "Writing to output..." << endl;
@@ -137,20 +136,18 @@ int main( int argc, char* argv[] )
 	if( !write_PFMs( ofs_PFM, motifs, num_motifs, __experiment, false ) )
 		return 1;
 
-	// write the optimized PFM for the best-scoring motif
-	if( !write_PFMs( ofs_opt_PFM, motifs, 1, __experiment, true ) )
+	// write the optimized PFMs
+	if( !write_PFMs( ofs_opt_PFM, motifs, num_motifs, __experiment, true ) )
 		return 1;
-
-	// write the optimized PFM for the best-scoring motif in MEME format
-	if( num_motifs )
-		write_opt_MEME( ofs_opt_PFM_MEME, motifs[ 0 ], __experiment );
 
 	// write the postscript
 	write_graphics( ofs_ps, motifs, num_motifs );
-	write_graphics( ofs_opt_ps, motifs, 1 );
 
 	// write report
 	write_report( ofs_report, motifs, num_motifs, __experiment );
+
+	// write scores
+	write_scores( ofs_scores, seqs, num_seqs, motifs, num_enriched, __experiment );
 
 	cout << endl << "Job finished successfully." << endl;
 

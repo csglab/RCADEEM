@@ -43,10 +43,24 @@ along with RCOpt.  If not, see <http://www.gnu.org/licenses/>.
 int _n_index( char nucleotide )
 // returns the index of the specified nucleotide
 {
-	int i;
-	for( i = 0; i < 4; i ++ )
-		if( nucleotide == __n_letters[ i ] )
-			return i;
+	// the order is ACGT
+	switch( nucleotide )
+	{
+		case 'a':
+		case 'A':
+			return 0;
+		case 'c':
+		case 'C':
+			return 1;
+		case 'g':
+		case 'G':
+			return 2;
+		case 't':
+		case 'T':
+		case 'u':
+		case 'U':
+			return 3;
+	}
 			
 	return -1;
 }
@@ -68,6 +82,14 @@ void optimize_PFMs(
 	// Note that we represent all probabilities as ln(p). This notation is dropped from variables for simplicity
 
 
+	//////////////////////////////////////////////////////// initialize memory for final HMM scores of each sequence
+	int i, j;
+	for( i = 0; i < num_seqs; i ++ )
+	{
+		seqs[ i ] ->hmm_scores = new double[ num_motifs ];
+		memset( seqs[ i ] ->hmm_scores, 0, sizeof(double) * num_motifs );
+	}	
+
 	//////////////////////////////////////////////////////// initialize the transition matrix
 	// index 0: bkg
 	// index 1: the start of the first motif
@@ -84,7 +106,6 @@ void optimize_PFMs(
 	
 
 	int num_states = 1; //  bkg
-	int i, j;
 	for( i = 0; i < num_motifs; i ++ )
 	{
 		motif_f_start[ i ] = num_states;
@@ -225,7 +246,7 @@ void optimize_PFMs(
 
 	
 	int iter, seq, motif;
-	for( iter = 0; iter < MAX_ITER; iter ++ ) // perform multiple iterations of the algorithm
+	for( iter = 0; iter < MAX_ITER+1; iter ++ ) // perform multiple iterations of the algorithm
 	{
 		
 		// initialize gamma and xi to zero
@@ -245,7 +266,7 @@ void optimize_PFMs(
 		// for each sequence, calculate the alpha and beta separately, and then update gamma, gamma_o, and xi
 		for( seq = 0; seq < num_seqs; seq ++ )
 		//for( seq = 0; seq < 100; seq ++ )
-			if( seqs[ seq ] ->positive )
+			if( seqs[ seq ] ->positive || iter == MAX_ITER )
 			{
 				cout << "."; cout.flush();
 				///////////////////////// forward algorithm - calculate alpha
@@ -301,12 +322,15 @@ void optimize_PFMs(
 					
 				}
 				
-				// calculate the probability of observing this sequence given the current model
-				double seq_probability = 0;
-				for( j = 0; j < num_states; j ++ )
-					seq_probability += alpha[ seqs[ seq ] ->seq_length - 1 ][ j ];
-				seq_probability *= total_scale;				
-				cerr << seq_probability << char(9);
+				// calculate the probability of observing this sequence given the current model (only if this is a positive sequence)
+				if( seqs[ seq ] ->positive )
+				{
+					double seq_probability = 0;
+					for( j = 0; j < num_states; j ++ )
+						seq_probability += alpha[ seqs[ seq ] ->seq_length - 1 ][ j ];
+					seq_probability *= total_scale;
+					cerr << seq_probability << char(9);
+				}
 
 
 	
@@ -393,19 +417,60 @@ void optimize_PFMs(
 						for( j = 0; j < num_states; j ++ )
 							xi[ i ][ j ] +=  X[ i ][ j ]/normalizer;
 				}
+
+				///////////////////////// if this is the last iteration, update the HMM summary score of each sequence
+			
+				if( iter == MAX_ITER )
+					for( t = 0; t < seqs[ seq ] ->seq_length; t ++ )
+					{
+						double normalizer = 0;				
+						for( i = 0; i < num_states; i ++ )
+						{
+							g[ i ] = alpha[ t ][ i ] * beta[ t ][ i ];
+							normalizer += g[ i ];
+						}
+						
+						// add up g[i] for each motif
+						int state_index = 1; // indexes the positions within the motifs
+						for( i = 0; i < num_motifs; i ++ )
+						{
+							double motif_score = 0;
+							for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
+							{
+								// For every position in a motif, there are two states, corresponding to forward and reverse PFMs
+								// therefore, for every position, two states should be added up
+								motif_score += g[ state_index ] / normalizer;
+								state_index ++;
+								motif_score += g[ state_index ] / normalizer;
+								state_index ++;
+							}
+							
+							if( t == 0 || seqs[ seq ] ->hmm_scores[ i ] < motif_score )
+								seqs[ seq ] ->hmm_scores[ i ] = motif_score;
+						}
+					}
+
 			}
 		
 		///////////////////////// update the HMM
+
+		if( iter == MAX_ITER ) // if this is past MAX_ITER, there's no need to update the HMM
+		{
+			cerr << endl;
+			continue;
+		}
 
 		// update priors
 		double normalizer = 0;
 		for( i = 0; i < num_states; i ++ ) // calculate the normalizer, so that the sum of priors is 1
 		{
-			normalizer += gamma0[ i ];
+			//normalizer += gamma0[ i ];
+			normalizer += gamma[ i ];
 			*prior[ i ] = 0;
 		}
 
-		priors[ 0 ] = gamma0[ i ] / normalizer; // bkg prior
+		//priors[ 0 ] = gamma0[ 0 ] / normalizer; // bkg prior
+		priors[ 0 ] = gamma[ 0 ] / normalizer; // bkg prior
 
 		// for the motifs, the prior of each position is the average of the prior of all positions in forward and reverse PFMs		
 		int state_index = 1; // indexes the positions within the motifs
@@ -415,9 +480,11 @@ void optimize_PFMs(
 			{
 				// For every position in a motif, there are two states, corresponding to forward and reverse PFMs
 				// therefore, for every position, two states should be added up
-				priors[ i ] += gamma0[ state_index ] / normalizer;
+				//priors[ i ] += gamma0[ state_index ] / normalizer;
+				priors[ i ] += gamma[ state_index ] / normalizer;
 				state_index ++;
-				priors[ i ] += gamma0[ state_index ] / normalizer;
+				//priors[ i ] += gamma0[ state_index ] / normalizer;
+				priors[ i ] += gamma[ state_index ] / normalizer;
 				state_index ++;
 			}
 			

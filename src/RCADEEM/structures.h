@@ -44,6 +44,10 @@ using namespace std;
 #define MAX_SEQS				100000
 #define MAX_SEQ_LENGTH			1000
 
+#define FORWARD_ONLY			0
+#define REVERSE_ONLY			1
+#define BOTH_STRANDS			2
+
 // macros
 #define RELEASE(x)		do{ if(x) delete (x); }while(false) // this do-while loop is called only once
 #define _CALL(x)		do{ if(!(x)) return false; }while(false)
@@ -101,7 +105,7 @@ struct s_motif
 		memset( PWM, 0, sizeof(double*) * NUM_N_LETTERS );
 		memset( PFM, 0, sizeof(double*) * NUM_N_LETTERS );
 		
-		PFM_optimized = 1;
+		PFM_optimized = 0;
 		memset( opt_PFM_f, 0, sizeof(double*) * MAX_MOTIF_LENGTH );
 		memset( opt_PFM_r, 0, sizeof(double*) * MAX_MOTIF_LENGTH );
 		memset( opt_PFM, 0, sizeof(double*) * NUM_N_LETTERS );
@@ -157,6 +161,7 @@ struct s_motif
 	double correl; // the correlation of the initial and optimized PWMs
 	double p_correl; // the p-value association with the above correlation
 	
+	double p_hyper; // the hypergeometric p-value for enrichment of positive sequences among top hits of this motif
 };
 
 // this structure will hold the information for the input sequences
@@ -170,7 +175,11 @@ struct s_seq
 		seq = NULL; // no memory allocated yet
 		seq_length = 0; // the initial length of the sequence is zero
 		
-		positive = 1; // by default, the sequence belongs to the positive set		
+		positive = 1; // by default, the sequence belongs to the positive set
+		
+		score = 0;
+		
+		hmm_scores = NULL;
 	}
 	~s_seq()
 	{
@@ -178,6 +187,7 @@ struct s_seq
 	
 		RELEASE( name );
 		RELEASE( seq );
+		RELEASE( hmm_scores );
 	}
 
 	char *name; // the name of this sequence, as read from the input FASTA file
@@ -186,6 +196,12 @@ struct s_seq
 	int seq_length; // the length of the nucleotide sequence
 	
 	int positive; // whether this sequence belongs to the positive or negative set	
+	
+	double score; // the score for scanning this sequence with the active PFM
+	int max_pos; // the position for the best hit
+	int max_dir; // the direction for the best hit
+
+	double *hmm_scores;
 };
 
 
