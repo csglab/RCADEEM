@@ -145,7 +145,7 @@ void optimize_PFMs(
 		int start = motif_f_start[ i ];
 		aij[ 0 ][ start ] = INIFREQ; // the probability of going from bkg to the start of the forward motif
 		
-		prior[ start ] = priors + i; // the address to motif prior probability
+		prior[ start ] = priors + i + 1; // the address to motif prior probability
 		*prior[ start ] = INIPRIOR; // the initial value of this prior
 		
 		for( j = 0; j < motifs[ i ] ->PWM_width-1; j ++ )
@@ -158,7 +158,7 @@ void optimize_PFMs(
 		start = motif_r_start[ i ];
 		aij[ 0 ][ start ] = INIFREQ; // the probability of going from bkg to the start of the reverse motif
 
-		prior[ start ] = priors + i; // the address to motif prior probability
+		prior[ start ] = priors + i + 1; // the address to motif prior probability
 		*prior[ start ] = INIPRIOR; // the initial value of this prior
 
 		for( j = 0; j < motifs[ i ] ->PWM_width-1; j ++ )
@@ -480,15 +480,15 @@ void optimize_PFMs(
 			{
 				// For every position in a motif, there are two states, corresponding to forward and reverse PFMs
 				// therefore, for every position, two states should be added up
-				//priors[ i ] += gamma0[ state_index ] / normalizer;
-				priors[ i ] += gamma[ state_index ] / normalizer;
+				//priors[ i+1 ] += gamma0[ state_index ] / normalizer;
+				priors[ i+1 ] += gamma[ state_index ] / normalizer;
 				state_index ++;
-				//priors[ i ] += gamma0[ state_index ] / normalizer;
-				priors[ i ] += gamma[ state_index ] / normalizer;
+				//priors[ i+1 ] += gamma0[ state_index ] / normalizer;
+				priors[ i+1 ] += gamma[ state_index ] / normalizer;
 				state_index ++;
 			}
 			
-			priors[ i ] /= ( motifs[ i ] ->PWM_width * 2 ); // take the average over the motif positions
+			priors[ i+1 ] /= ( motifs[ i ] ->PWM_width * 2 ); // take the average over the motif positions
 		}
 		
 		// update aij
