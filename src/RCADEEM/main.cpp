@@ -89,7 +89,11 @@ int main( int argc, char* argv[] )
 		return 1;
 
 	ofstream ofs_scores;
-	if( !open_output( ofs_scores, __output_file, ".opt.scores.txt" ) )
+	if( !open_output( ofs_scores, __output_file, ".PFM.scores.txt" ) )
+		return 1;
+
+	ofstream ofs_metaPFM_scores;
+	if( !open_output( ofs_metaPFM_scores, __output_file, ".metaPFM.profiles.txt" ) )
 		return 1;
 
 	//******************* open the result file
@@ -124,30 +128,53 @@ int main( int argc, char* argv[] )
 		return 1;
 		
 	cout << "Finding enriched PFMs..." << endl;
-	int num_enriched = calculate_enrichments( seqs, num_seqs, motifs, num_motifs );
+	int num_enriched = calculate_initial_enrichments( seqs, num_seqs, motifs, num_motifs );
 	
-	cout << "Optimizing " << num_enriched << " PFMs with significant enrichment at FDR<0.01 ..." << endl;
-	optimize_PFMs( seqs, num_seqs, motifs, num_enriched );
-	
+	int metaPFM_width;
+	int i;
+	for( i = 0; ; i ++ )
+	{
+		cout << "(Re-)optimizing " << num_enriched << " PFMs with significant enrichment at FDR<0.01 ..." << endl;
+		metaPFM_width = optimize_PFMs( seqs, num_seqs, motifs, num_enriched, 30, i );
+
+		// calculate optimized enrichments
+		int new_num_enriched = calculate_optimized_enrichments( seqs, num_seqs, motifs, num_enriched );
+		
+		if( new_num_enriched == num_enriched )
+			break;
+			
+		if( !new_num_enriched )
+		{
+			cout << "ERROR: No motifs are enriched." << endl;
+			return 1;
+		}
+		
+		num_enriched = new_num_enriched;
+	}
+		
 	//******************* write the output files
 	cout << "Writing to output..." << endl;
 	
+	// write scores
+	write_scores( ofs_scores, seqs, num_seqs, motifs, num_enriched, __experiment );
+	write_metaPFM_scores( ofs_metaPFM_scores, seqs, num_seqs, metaPFM_width );
+	
+	motifs[ num_enriched ] = new s_motif;
+	generate_metaPFM( motifs, num_enriched, motifs[ num_enriched ], metaPFM_width );
+
 	// write all PFMs
-	if( !write_PFMs( ofs_PFM, motifs, num_motifs, __experiment, false ) )
+	if( !write_PFMs( ofs_PFM, motifs, num_enriched+1, __experiment, false ) )
 		return 1;
 
 	// write the optimized PFMs
-	if( !write_PFMs( ofs_opt_PFM, motifs, num_motifs, __experiment, true ) )
+	if( !write_PFMs( ofs_opt_PFM, motifs, num_enriched+1, __experiment, true ) )
 		return 1;
 
 	// write the postscript
-	write_graphics( ofs_ps, motifs, num_motifs );
+	write_graphics( ofs_ps, motifs, num_enriched+1 );
 
 	// write report
-	write_report( ofs_report, motifs, num_motifs, __experiment );
-
-	// write scores
-	write_scores( ofs_scores, seqs, num_seqs, motifs, num_enriched, __experiment );
+	write_report( ofs_report, motifs, num_enriched+1, __experiment );
 
 	cout << endl << "Job finished successfully." << endl;
 

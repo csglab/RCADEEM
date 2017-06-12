@@ -30,12 +30,6 @@ along with RCOpt.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "declarations.h"
 
-#define INIFREQ					(0.01/num_motifs/2)
-#define INIPRIOR				(0.01/(num_states-1))
-#define INIBKG					(0.99)
-
-
-#define MAX_ITER			10
 #define MAX_UNCHANGED		20
 #define CONVERGENCE_RATE	0.8
 
@@ -66,11 +60,13 @@ int _n_index( char nucleotide )
 }
 
 //////////////////////////////////////////////////////////
-void optimize_PFMs(
+int optimize_PFMs(
 	s_seq *seqs[],
 	int num_seqs,
 	s_motif *motifs[],
-	int num_motifs )
+	int num_motifs,
+	int num_iterations,
+	int reoptimization )
 {
 	// This function uses an HMM to optimize all potential motifs simultaneously.
 	// The HMM has the following form:
@@ -81,14 +77,6 @@ void optimize_PFMs(
 	// http://bozeman.genome.washington.edu/compbio/mbt599_2006/hmm_scaling_revised.pdf
 	// Note that we represent all probabilities as ln(p). This notation is dropped from variables for simplicity
 
-
-	//////////////////////////////////////////////////////// initialize memory for final HMM scores of each sequence
-	int i, j;
-	for( i = 0; i < num_seqs; i ++ )
-	{
-		seqs[ i ] ->hmm_scores = new double[ num_motifs ];
-		memset( seqs[ i ] ->hmm_scores, 0, sizeof(double) * num_motifs );
-	}	
 
 	//////////////////////////////////////////////////////// initialize the transition matrix
 	// index 0: bkg
@@ -106,6 +94,9 @@ void optimize_PFMs(
 	
 
 	int num_states = 1; //  bkg
+	int max_metaPFM_pos;
+	int i, j;
+	double sum_initial_motif_freqs = 0;
 	for( i = 0; i < num_motifs; i ++ )
 	{
 		motif_f_start[ i ] = num_states;
@@ -115,8 +106,29 @@ void optimize_PFMs(
 		motif_r_start[ i ] = num_states;
 		motif_r_end[ i ] = num_states + motifs[ i ] ->PWM_width - 1;
 		num_states += motifs[ i ] ->PWM_width;
+		
+		if( i == 0 || max_metaPFM_pos < motifs[ i ] ->metaPFM_pos[ 0 ] )
+			max_metaPFM_pos = motifs[ i ] ->metaPFM_pos[ 0 ];
+			
+		if( !reoptimization ) // this is not a reoptimization
+			motifs[ i ] ->freq = 0.01 / num_motifs;
+			
+		sum_initial_motif_freqs += motifs[ i ] ->freq;
 	}
+	int metaPFM_width = max_metaPFM_pos + 1; // the length of the meta PFM
 	
+
+	// initialize memory for final HMM scores of each sequence
+	for( i = 0; i < num_seqs; i ++ )
+	{
+		RELEASE( seqs[ i ] ->hmm_scores ); // if memory has been allocated previously, release it
+		seqs[ i ] ->hmm_scores = new double[ num_motifs ];
+		memset( seqs[ i ] ->hmm_scores, 0, sizeof(double) * num_motifs );
+
+		RELEASE( seqs[ i ] ->metaPFM_scores ); // if memory has been allocated previously, release it
+		seqs[ i ] ->metaPFM_scores = new double[ metaPFM_width ];
+		memset( seqs[ i ] ->metaPFM_scores, 0, sizeof(double) * metaPFM_width );
+	}	
 
 	// now initialize the matrix of transition probabilities
 	double *aij[ MAX_STATES ]; // the ln of transition probabilities; aij[ i ][ j ] : transition from state i to state j
@@ -135,18 +147,18 @@ void optimize_PFMs(
 
 	double *priors = new double[ 1 + num_motifs ]; // this array will hold the actual priors; index 0: bkg; index 1: motif1; index 2: motif2; etc.
 	double *prior[ MAX_STATES ]; // this array will point to the address of the value
-	aij[ 0 ][ 0 ] = INIBKG; // the probability of going from bkg to bkg
+	aij[ 0 ][ 0 ] = 1-sum_initial_motif_freqs; // the probability of going from bkg to bkg
 
 	prior[ 0 ] = priors + 0; // the address to bkg prior
-	*prior[ 0 ] = INIBKG; // the initial value of this prior
+	*prior[ 0 ] = 1-sum_initial_motif_freqs;; // the initial value of this prior
 	
 	for( i = 0; i < num_motifs; i ++ )
 	{
 		int start = motif_f_start[ i ];
-		aij[ 0 ][ start ] = INIFREQ; // the probability of going from bkg to the start of the forward motif
+		aij[ 0 ][ start ] = motifs[ i ] ->freq / 2; // the probability of going from bkg to the start of the forward motif
 		
 		prior[ start ] = priors + i + 1; // the address to motif prior probability
-		*prior[ start ] = INIPRIOR; // the initial value of this prior
+		*prior[ start ] = motifs[ i ] ->freq / ( motifs[ i ] ->PWM_width * 2 ); // the initial value of this prior
 		
 		for( j = 0; j < motifs[ i ] ->PWM_width-1; j ++ )
 		{
@@ -156,10 +168,10 @@ void optimize_PFMs(
 		aij[ start + j ][ 0 ] = 1; // the probability of going from the motif end to bkg
 
 		start = motif_r_start[ i ];
-		aij[ 0 ][ start ] = INIFREQ; // the probability of going from bkg to the start of the reverse motif
+		aij[ 0 ][ start ] = motifs[ i ] ->freq / 2; // the probability of going from bkg to the start of the forward motif
 
 		prior[ start ] = priors + i + 1; // the address to motif prior probability
-		*prior[ start ] = INIPRIOR; // the initial value of this prior
+		*prior[ start ] = motifs[ i ] ->freq / ( motifs[ i ] ->PWM_width * 2 ); // the initial value of this prior
 
 		for( j = 0; j < motifs[ i ] ->PWM_width-1; j ++ )
 		{
@@ -186,9 +198,13 @@ void optimize_PFMs(
 		int start = motif_f_start[ i ];
 		for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
 		{
-			motifs[ i ] ->opt_PFM_f[ x ] = new double[ 4 ];
-			for( n = 0; n < 4; n ++ )
-				motifs[ i ] ->opt_PFM_f[ x ][ n ] = motifs[ i ] ->PFM[ n ][ x ];
+			if( !reoptimization ) // this is not a re-optimization of previously optimized motifs
+			// initialize opt_PFM_f
+			{
+				motifs[ i ] ->opt_PFM_f[ x ] = new double[ 4 ];
+				for( n = 0; n < 4; n ++ )
+					motifs[ i ] ->opt_PFM_f[ x ][ n ] = motifs[ i ] ->PFM[ n ][ x ];
+			}
 			bjo[ start + x ] = motifs[ i ] ->opt_PFM_f[ x ];
 		}
 
@@ -196,15 +212,21 @@ void optimize_PFMs(
 		start = motif_r_start[ i ];
 		for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
 		{
-			motifs[ i ] ->opt_PFM_r[ x ] = new double[ 4 ];
-			for( n = 0; n < 4; n ++ )
-				motifs[ i ] ->opt_PFM_r[ x ][ n ] = motifs[ i ] ->opt_PFM_f[ motifs[ i ] ->PWM_width-1-x ][ 3-n ];
+			if( !reoptimization ) // this is not a re-optimization of previously optimized motifs
+			// initialize opt_PFM_r
+			{
+				motifs[ i ] ->opt_PFM_r[ x ] = new double[ 4 ];
+				for( n = 0; n < 4; n ++ )
+					motifs[ i ] ->opt_PFM_r[ x ][ n ] = motifs[ i ] ->opt_PFM_f[ motifs[ i ] ->PWM_width-1-x ][ 3-n ];
+			}
 			bjo[ start + x ] = motifs[ i ] ->opt_PFM_r[ x ];
 		}
 		
 		// initialize the memory for the final PFM, which will be the average of the forward and reverse PFMs
-		for( n = 0; n < 4; n ++ )
-			motifs[ i ] ->opt_PFM[ n ] = new double[ motifs[ i ] ->PWM_width ];
+		if( !reoptimization ) // this is not a re-optimization of previously optimized motifs
+		// initialize opt_PFM
+			for( n = 0; n < 4; n ++ )
+				motifs[ i ] ->opt_PFM[ n ] = new double[ motifs[ i ] ->PWM_width ];
 	}
 
 		
@@ -246,8 +268,16 @@ void optimize_PFMs(
 
 	
 	int iter, seq, motif;
-	for( iter = 0; iter < MAX_ITER+1; iter ++ ) // perform multiple iterations of the algorithm
+	for( iter = 0; iter < num_iterations+1; iter ++ ) // perform multiple iterations of the algorithm
 	{
+		if( iter < num_iterations )
+		{
+			cout << "Iteration " << iter+1 << " of " << num_iterations << " "; cout.flush();
+		}
+		else
+		{
+			cout << "Updating HMM scores "; cout.flush();
+		}
 		
 		// initialize gamma and xi to zero
 		for( i = 0; i < num_states; i ++ )
@@ -262,13 +292,19 @@ void optimize_PFMs(
 				xi[ i ][ j ] = 0;
 		}
 
+		double log_seq_probability = 0;
 	
+		int dot_spacing = num_seqs / 100;
+		if( dot_spacing < 1 )
+			dot_spacing = 1;
+
 		// for each sequence, calculate the alpha and beta separately, and then update gamma, gamma_o, and xi
 		for( seq = 0; seq < num_seqs; seq ++ )
 		//for( seq = 0; seq < 100; seq ++ )
-			if( seqs[ seq ] ->positive || iter == MAX_ITER )
+			if( seqs[ seq ] ->positive || iter == num_iterations )
 			{
-				cout << "."; cout.flush();
+				if( seq % dot_spacing == 0 )
+					cout << "."; cout.flush();
 				///////////////////////// forward algorithm - calculate alpha
 
 
@@ -329,7 +365,8 @@ void optimize_PFMs(
 					for( j = 0; j < num_states; j ++ )
 						seq_probability += alpha[ seqs[ seq ] ->seq_length - 1 ][ j ];
 					seq_probability *= total_scale;
-					cerr << seq_probability << char(9);
+					
+					log_seq_probability += log10( seq_probability );
 				}
 
 
@@ -420,7 +457,13 @@ void optimize_PFMs(
 
 				///////////////////////// if this is the last iteration, update the HMM summary score of each sequence
 			
-				if( iter == MAX_ITER )
+				if( iter == num_iterations )
+				{
+					// initialize all HMM scores to 0
+					memset( seqs[ seq ] ->hmm_scores, 0, sizeof(double) * num_motifs );
+					memset( seqs[ seq ] ->metaPFM_scores, 0, sizeof(double) * metaPFM_width );
+					
+					// the HMM score of the sequence for each motif is the sum (over the sequence) of the probabilities of being in one of the states that correspond to that motif
 					for( t = 0; t < seqs[ seq ] ->seq_length; t ++ )
 					{
 						double normalizer = 0;				
@@ -430,35 +473,38 @@ void optimize_PFMs(
 							normalizer += g[ i ];
 						}
 						
-						// add up g[i] for each motif
-						int state_index = 1; // indexes the positions within the motifs
 						for( i = 0; i < num_motifs; i ++ )
 						{
-							double motif_score = 0;
+							// add up the g[i] values for each motif
 							for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
 							{
 								// For every position in a motif, there are two states, corresponding to forward and reverse PFMs
 								// therefore, for every position, two states should be added up
-								motif_score += g[ state_index ] / normalizer;
-								state_index ++;
-								motif_score += g[ state_index ] / normalizer;
-								state_index ++;
+								seqs[ seq ] ->hmm_scores[ i ] += g[ motif_f_start[ i ] + x ] / normalizer;
+								seqs[ seq ] ->hmm_scores[ i ] += g[ motif_r_start[ i ] + x ] / normalizer;
+								
+								seqs[ seq ] ->metaPFM_scores[ motifs[ i ] ->metaPFM_pos[ x ] ] +=
+									g[ motif_f_start[ i ] + x ] / normalizer;
+								seqs[ seq ] ->metaPFM_scores[ motifs[ i ] ->metaPFM_pos[ x ] ] +=
+									g[ motif_r_start[ i ] + x ] / normalizer;
 							}
-							
-							if( t == 0 || seqs[ seq ] ->hmm_scores[ i ] < motif_score )
-								seqs[ seq ] ->hmm_scores[ i ] = motif_score;
 						}
 					}
+					
+					// if a sequence has a perfect match to one motif, then there will be a stretch of PWM_width with probability of 1 for belonging to one of the states of that motif. Therefore, their sum of probabilities must be divided by PWM_width to obtain the probability of matching the motif
+					for( i = 0; i < num_motifs; i ++ )						
+						seqs[ seq ] ->hmm_scores[ i ] /= motifs[ i ] ->PWM_width;
+				}
 
 			}
 		
 		///////////////////////// update the HMM
+		
+		cerr << log_seq_probability << endl;
+		cout << endl;
 
-		if( iter == MAX_ITER ) // if this is past MAX_ITER, there's no need to update the HMM
-		{
-			cerr << endl;
+		if( iter == num_iterations ) // if this is past num_iterations, there's no need to update the HMM
 			continue;
-		}
 
 		// update priors
 		double normalizer = 0;
@@ -488,7 +534,9 @@ void optimize_PFMs(
 				state_index ++;
 			}
 			
-			priors[ i+1 ] /= ( motifs[ i ] ->PWM_width * 2 ); // take the average over the motif positions
+			motifs[ i ] ->freq = priors[ i+1 ];
+
+			priors[ i+1 ] /= ( motifs[ i ] ->PWM_width * 2 ); // take the average over the motif positions			
 		}
 		
 		// update aij
@@ -503,21 +551,50 @@ void optimize_PFMs(
 				( aij[ 0 ][ motif_f_start[ i ] ] + aij[ 0 ][ motif_r_start[ i ] ] ) / 2;
 		}
 
-		// update bjo
-		for( j = 0; j < num_states; j ++ )
-			for( n = 0; n < 4; n ++ )
-				bjo[ j ][ n ] = ( gamma_o[ n ][ j ]/gamma[ j ] + 0.001 ) / 1.004; // add some uncertainty to avoid zero probabilities
-				
-		/////////// average the updated forward and reverse PFMs
-		for( i = 0; i < num_motifs; i ++ )
-			for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
+		// update bjo (and the PFMs)
+		if( !reoptimization ) // update the PFMs only if this is the first round of optimization
+		{
+			for( j = 0; j < num_states; j ++ )
 				for( n = 0; n < 4; n ++ )
-					motifs[ i ] ->opt_PFM[ n ][ x ] =
-					motifs[ i ] ->opt_PFM_f[ x ][ n ] =
-					motifs[ i ] ->opt_PFM_r[ motifs[ i ] ->PWM_width-1-x ][ 3-n ] =
-						( motifs[ i ] ->opt_PFM_f[ x ][ n ] +
-						motifs[ i ] ->opt_PFM_r[ motifs[ i ] ->PWM_width-1-x ][ 3-n ] ) / 2;
-
-		cerr << endl;
+					bjo[ j ][ n ] = ( gamma_o[ n ][ j ]/gamma[ j ] + 0.001 ) / 1.004; // add some uncertainty to avoid zero probabilities
+				
+			/////////// average the updated forward and reverse PFMs
+				for( i = 0; i < num_motifs; i ++ )
+					for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
+						for( n = 0; n < 4; n ++ )
+							motifs[ i ] ->opt_PFM[ n ][ x ] =
+							motifs[ i ] ->opt_PFM_f[ x ][ n ] =
+							motifs[ i ] ->opt_PFM_r[ motifs[ i ] ->PWM_width-1-x ][ 3-n ] =
+								( motifs[ i ] ->opt_PFM_f[ x ][ n ] +
+								motifs[ i ] ->opt_PFM_r[ motifs[ i ] ->PWM_width-1-x ][ 3-n ] ) / 2;
+		}
 	}
+
+	///////////////////////////// release any unwanted memory that was allocated in this function
+	for( i = 0; i < num_states; i ++ )
+		RELEASE( aij[ i ] );
+
+	RELEASE( priors );
+	RELEASE( scale );
+
+	for( i = 0; i < max_seq_length; i ++ )
+	{
+		RELEASE( alpha[ i ] );
+		RELEASE( beta[ i ] );
+	}
+
+	RELEASE( gamma );
+	RELEASE( gamma0 );
+	RELEASE( g );
+	for( i = 0; i < 4; i ++ )
+		RELEASE( gamma_o[ i ] );
+	for( i = 0; i < num_states; i ++ )
+	{
+		RELEASE( xi[ i ] );
+		RELEASE( X[ i ] );
+	}
+	
+	
+	// return the width of the meta-PFM
+	return metaPFM_width;
 }

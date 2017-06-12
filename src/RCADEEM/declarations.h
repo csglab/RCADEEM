@@ -46,14 +46,18 @@ bool read_weights( ifstream &ifs, s_motif *motifs[], int num_motifs, char this_E
 bool read_FASTA( ifstream &ifs, s_seq *seqs[], int *num_seqs, char this_EOL );
 
 bool generate_PWMs( s_motif *motifs[], int num_motifs, double enrichment_fold );
+void generate_metaPFM( s_motif *motifs[], int num_motifs, s_motif *metaPFM, int metaPFM_width );
+
 void scan_sequences( s_seq *seqs[], int num_seqs, double *PFM[], int PFM_width, int direction );
-int calculate_enrichments( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
+int calculate_initial_enrichments( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
+int calculate_optimized_enrichments( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
 
 double get_correlation( double *PWM1[], double *PWM2[], int PWM_width, double *mean, double *stdev );
 
-void optimize_PFMs( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs );
+int optimize_PFMs( s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs, int num_iterations, int reoptimization );
 
 bool write_scores( ofstream &ofs, s_seq *seqs[], int num_seqs, s_motif *motifs[], int num_motifs, const char *experiment_name );
+bool write_metaPFM_scores( ofstream &ofs, s_seq *seqs[], int num_seqs, int metaPFM_width );
 bool write_PFMs( ofstream &ofs, s_motif *motifs[], int num_motifs, const char *experiment_name, bool opt_only );
 void write_opt_MEME( ofstream &ofs, s_motif *motif, const char *experiment_name );
 void write_report( ofstream &ofs, s_motif *motifs[], int num_motifs, const char *experiment_name );

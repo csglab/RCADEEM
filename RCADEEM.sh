@@ -4,6 +4,7 @@
 FASTAtoRF="./bin/FASTAtoRF"
 rndForest="./src/_R/_predict.RF.R"
 RCADEEM="./bin/RCADEEM"
+procResults="./src/_R/_process_RCADEEM_results.R"
 memebin="/Users/hamed_najafabadi/Academic/Tools/meme_4.10.0/installation/bin"
 
 ####################### identify the input arguments
@@ -77,12 +78,12 @@ do
 done
 
 ####################### run the RF script, and reformat it for the next step
-#Rscript $rndForest $jobid
-#sed 's/"//g' $RF_out > $out_file.RF_out.txt
+Rscript $rndForest $jobid
+sed 's/"//g' $RF_out > $out_file.RF_out.txt
 
 ####################### run the RCADEEM script
 $RCADEEM -rf $out_file.RF_out.txt -fasta $all -out $out_file -mode 3  >>$out_folder/log.step2.txt
-
+Rscript $procResults $jobid
 
 
 

@@ -63,6 +63,34 @@ bool write_scores(
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+bool write_metaPFM_scores(
+	ofstream &ofs,
+	s_seq *seqs[],
+	int num_seqs,
+	int metaPFM_width )
+{
+
+	ofs << "Gene" << char(9) << "Status";
+
+	int i;
+	for( i = 0; i < metaPFM_width; i ++ )
+		ofs << char(9) << "position|" << i+1;
+	ofs << endl;
+	
+	for( i = 0; i < num_seqs; i ++ )
+	{
+		ofs << seqs[ i ] ->name << char(9) << seqs[ i ] ->positive;
+		
+		int j;
+		for( j = metaPFM_width - 1; j >= 0; j -- )
+			ofs << char(9) << seqs[ i ] ->metaPFM_scores[ j ];
+		ofs << endl;
+	}
+	
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 bool write_PFMs(
 	ofstream &ofs,
 	s_motif *motifs[],
@@ -232,7 +260,7 @@ void write_graphics(
 		for( n = 0; n < NUM_N_LETTERS; n ++ )
 			for( x = 0; x < PWM_width; x ++ )
 				if( i%2 == 0 )
-					PWM[ n ][ x ] = motifs[ motif_index ] ->PWM[ n ][ x ];
+					PWM[ n ][ x ] = log10( motifs[ motif_index ] ->PFM[ n ][ x ] * 4 );
 				else
 					PWM[ n ][ x ] = log10( motifs[ motif_index ] ->opt_PFM[ n ][ x ] * 4 );
 
