@@ -177,9 +177,88 @@ bool generate_PWMs(
 				motifs[ i ] ->PFM[ n ][ j ] = pow( 10, PWM[ n ][ j ] ) / 4.0;
 			}
 		}
-
+		
 		motifs[ i ] ->PWM_width = PWM_width - 1;
+		
+		// Store the correspondence between each position in the PWM and the position
+		// within the "meta" PWM, i.e. the PWM that would be obtained by concatenating of
+		// all the motifs of all the ZFs of the protein.
+		// Note that the meta-PWM has a reversed order, for simplicity
+		
+		motifs[ i ] ->metaPFM_pos = new int[ motifs[ i ] ->PWM_width ];
+		int j;
+		for( j = 0; j < motifs[ i ] ->PWM_width; j ++ )
+			motifs[ i ] ->metaPFM_pos[ j ] = ( motifs[ i ] ->first_zf_in_protein - 1 ) * 3 +
+				motifs[ i ] ->PWM_width - 1 - j;
+		
 	}
 	
 	return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+void generate_metaPFM(
+	s_motif *motifs[],
+	int num_motifs,
+	s_motif *metaPFM,
+	int metaPFM_width )
+// generate a meta-PFM that represents weighted average of all individual PFMs, with the weights corresponding to estimated PFM frequencies
+{
+	// initiate the meta-PFM object
+	_COPY_STR( metaPFM ->protein_name, "meta-PFM" );
+	_COPY_STR( metaPFM ->name, "meta-PFM" );
+	metaPFM ->PFM_optimized = 1;
+	metaPFM ->PWM_width = metaPFM_width;
+	
+	// initialize the arrays
+	int n, x, metax;
+	for( n = 0; n < 4; n ++ )
+	{
+		metaPFM ->opt_PFM[ n ] = new double[ metaPFM_width ];
+		memset( metaPFM ->opt_PFM[ n ], 0, sizeof( double ) * metaPFM_width );
+
+		metaPFM ->PFM[ n ] = new double[ metaPFM_width ];
+		memset( metaPFM ->PFM[ n ], 0, sizeof( double ) * metaPFM_width );
+	}
+	
+	// calculate the average PFM (the meta-PFM)
+	int i, j;
+	double total_freq = 0;
+	for( i = 0; i < num_motifs; i ++ )
+	{
+		total_freq += motifs[ i ] ->freq;
+		
+		for( x = 0; x < motifs[ i ] ->PWM_width; x ++ )
+			for( n = 0; n < 4; n ++ )
+			{
+				metax = metaPFM_width - 1 - motifs[ i ] ->metaPFM_pos[ x ]; // the position within the meta-PFM
+
+				metaPFM ->opt_PFM[ n ][ metax ] += motifs[ i ] ->freq * motifs[ i ] ->opt_PFM[ n ][ x ];
+				metaPFM ->PFM[ n ][ metax ] += motifs[ i ] ->freq * motifs[ i ] ->PFM[ n ][ x ];
+			}
+		
+		// pad the flanking regions in the meta-PFM with N's
+		for( metax = 0; metax < metaPFM_width - 1 - motifs[ i ] ->metaPFM_pos[ 0 ]; metax ++ )
+			for( n = 0; n < 4; n ++ )
+			{
+				metaPFM ->opt_PFM[ n ][ metax ] += motifs[ i ] ->freq * 0.25;
+				metaPFM ->PFM[ n ][ metax ] += motifs[ i ] ->freq * 0.25;
+			}
+
+		for( metax = metaPFM_width - motifs[ i ] ->metaPFM_pos[ motifs[ i ] ->PWM_width - 1 ]; metax < metaPFM_width; metax ++ )
+			for( n = 0; n < 4; n ++ )
+		{
+				metaPFM ->opt_PFM[ n ][ metax ] += motifs[ i ] ->freq * 0.25;
+				metaPFM ->PFM[ n ][ metax ] += motifs[ i ] ->freq * 0.25;
+		}
+	}
+	
+	// take the average
+	for( metax = 0; metax < metaPFM_width; metax ++ )
+		for( n = 0; n < 4; n ++ )
+		{
+			metaPFM ->opt_PFM[ n ][ metax ] /= total_freq;
+			metaPFM ->PFM[ n ][ metax ] /= total_freq;
+		}
 }

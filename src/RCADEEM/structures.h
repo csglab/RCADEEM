@@ -49,7 +49,7 @@ using namespace std;
 #define BOTH_STRANDS			2
 
 // macros
-#define RELEASE(x)		do{ if(x) delete (x); }while(false) // this do-while loop is called only once
+#define RELEASE(x)		do{ if(x) delete (x); x = NULL; }while(false) // this do-while loop is called only once
 #define _CALL(x)		do{ if(!(x)) return false; }while(false)
 #define _COPY_STR(x,y)	do{ x=new char[strlen(y)+1]; strcpy((x),(y)); }while(false)
 #define MAX(x,y)		(((x)>(y))?(x):(y))
@@ -99,6 +99,8 @@ struct s_motif
 		first_zf_in_protein = -1;
 		last_zf_in_protein = -1;
 
+		metaPFM_pos = NULL;
+
 		memset( zfs, 0, sizeof(s_c2h2*) * MAX_ZF_PER_GENE ); // no memory allocated yet
 		num_zfs = 0;
 		
@@ -114,6 +116,9 @@ struct s_motif
 		
 		correl = 0;
 		p_correl = 1;
+		
+		group_representative = 0;
+		order = -1;
 	}
 	~s_motif()
 	{
@@ -121,6 +126,7 @@ struct s_motif
 	
 		RELEASE( name );
 		RELEASE( protein_name );
+		RELEASE( metaPFM_pos);
 		
 		int n;
 		for( n = 0; n < NUM_N_LETTERS; n ++ )
@@ -150,6 +156,7 @@ struct s_motif
 	double *PWM[ NUM_N_LETTERS ];
 	double *PFM[ NUM_N_LETTERS ];
 	int PWM_width;
+	int *metaPFM_pos; // The relationship between each position in the PWM and the position within the "meta" PWM
 	
 	int PFM_optimized; // whether the PFM was optimized for this motif
 	double *opt_PFM_f[ MAX_MOTIF_LENGTH ]; // the PFM after each round of maximization (forward direction)
@@ -162,6 +169,9 @@ struct s_motif
 	double p_correl; // the p-value association with the above correlation
 	
 	double p_hyper; // the hypergeometric p-value for enrichment of positive sequences among top hits of this motif
+	
+	int group_representative; // whether after optimizing and clustering the motifs, this motif is its group's representative
+	double order; // the order of the motifs in the final output
 };
 
 // this structure will hold the information for the input sequences
@@ -180,6 +190,7 @@ struct s_seq
 		score = 0;
 		
 		hmm_scores = NULL;
+		metaPFM_scores = NULL;
 	}
 	~s_seq()
 	{
@@ -188,6 +199,7 @@ struct s_seq
 		RELEASE( name );
 		RELEASE( seq );
 		RELEASE( hmm_scores );
+		RELEASE( metaPFM_scores );
 	}
 
 	char *name; // the name of this sequence, as read from the input FASTA file
@@ -202,6 +214,7 @@ struct s_seq
 	int max_dir; // the direction for the best hit
 
 	double *hmm_scores;
+	double *metaPFM_scores;
 };
 
 
