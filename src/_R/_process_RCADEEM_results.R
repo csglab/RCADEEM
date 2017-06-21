@@ -59,11 +59,19 @@ if( class(hmm_scores)[1]=="try-error" ) quit()
 ncolumns <- ncol( hmm_scores )
 nmotifs <- ncolumns-2
 cat(paste0(nmotifs," PFM scores were read for ", nrow(hmm_scores), " sequences, including ", sum(hmm_scores$Status), " positive sequences.\n"))
+if( nmotifs <= 0 )
+{
+  cat("ERROR: No motifs found in the input\n")
+  quit()
+}
 
 # Display a heatmap of the HMM scores
-jpeg(file=paste0("./out/",jobLabel,"/graphs.PFM_scores.jpg"),width=500,height=800)
-heatmap.2( as.matrix( hmm_scores[ hmm_scores$Status==1, 3:ncolumns, with=F ] ), hclustfun = function(x) hclust(x,method =  "complete"), margins=c(12,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0,1,length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
-new_device <- dev.off()
+if( nmotifs > 1 )
+{
+  jpeg(file=paste0("./out/",jobLabel,"/graphs.PFM_scores.jpg"),width=500,height=800)
+  heatmap.2( as.matrix( hmm_scores[ hmm_scores$Status==1, 3:ncolumns, with=F ] ), hclustfun = function(x) hclust(x,method =  "complete"), margins=c(12,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0,1,length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  new_device <- dev.off()
+}
 
 cat("Performing non-negative logistic regression for distinguishing positive from negative sequences ...\n")
 # Perform non-negative logistic regression to create a predictor of DNA-binding
@@ -83,9 +91,12 @@ cat("Calculating weighted PFM scores ...\n")
 weighted_hmm_scores <- t( t( as.matrix( hmm_scores[ , 3:ncolumns, with=F ] ) ) * coefs[2:(nmotifs+1)] )
 
 # Display a heatmap of the weighted scores
-jpeg(file=paste0("./out/",jobLabel,"/graphs.weighted_PFM_scores.jpg"),width=500,height=800)
-heatmap.2( weighted_hmm_scores[ hmm_scores$Status==1, ]  + coefs[1]/nmotifs, hclustfun = function(x) hclust(x,method =  "complete"), margins=c(12,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0,3,length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
-new_device <- dev.off()
+if( nmotifs > 1 )
+{
+  jpeg(file=paste0("./out/",jobLabel,"/graphs.weighted_PFM_scores.jpg"),width=500,height=800)
+  heatmap.2( weighted_hmm_scores[ hmm_scores$Status==1, ]  + coefs[1]/nmotifs, hclustfun = function(x) hclust(x,method =  "complete"), margins=c(12,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0,3,length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  new_device <- dev.off()
+}
 write.table( cbind( hmm_scores[,1:2,with=F], weighted_hmm_scores), paste0("./out/",jobLabel,"/graphs.weighted_PFM_scores.txt"), sep="\t", quote=F, row.names = F )
 
 
