@@ -129,6 +129,11 @@ int main( int argc, char* argv[] )
 		
 	cout << "Finding enriched PFMs..." << endl;
 	int num_enriched = calculate_initial_enrichments( seqs, num_seqs, motifs, num_motifs );
+	if( !num_enriched )
+	{
+		cout << "ERROR: No motifs are enriched." << endl;
+		return 1;
+	}
 	
 	int metaPFM_width;
 	int i;
