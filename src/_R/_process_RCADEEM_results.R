@@ -8,37 +8,37 @@ library(data.table)
 # Sigmoid function
 sigmoid <- function(z) 1/(1+exp(-z))
 
-# The logistic cost Function. Note that except for theta[1], which represents the intercept,
-# the rest of the values are actually log(b), where b is the coefficient. This enforces 'b'
-# to be positive.
-logistic_cost <- function( theta, X, Y )
-{
-  m <- nrow(X)
-  g <- sigmoid( X %*% exp(theta[2:length(theta)]) + theta[1] )
-  J <- (1/m)*sum((-Y*log(g)) - ((1-Y)*log(1-g)))
-  return(J)
-}
-
-# Predict the probability based on a fit logistic function
+# Predict the probability based on the fit logistic function
 logistic_predict <- function( theta, X )
 {
   g <- sigmoid( X %*% theta[2:length(theta)] + theta[1] )
   return(g)
 }
 
-# The actual function for non-negative logistic regression
+
+# The function for non-negative logistic regression
+# This function performs iterative regression, keeping only the variables that have a significant positive regression coefficient
 nnlogistic <- function( X, Y )
 {
-  fit.glm <- glm(Y~X,family="binomial") # first fit a simple logistic
-  initial_theta <- coef( fit.glm ) # store the coefficients
-  ncoef <- length(initial_theta)
-  initial_theta[ 2:ncoef ][ initial_theta[ 2:ncoef ] <= 0 ] <- 0.00001
-  initial_theta[ 2:ncoef ] <- log( initial_theta[ 2:ncoef ] )
+  prev_include <- rep( FALSE, ncol(X) )
+  include <- rep( TRUE, ncol(X) )
+
+  while( sum( include != prev_include ) > 0 )
+  {
+    fit.glm <- glm(Y~X[,include],family="binomial") # first fit a simple logistic
+    p.values <- coef(summary(fit.glm))[-1,4]
+    est <- coef(summary(fit.glm))[-1,1]
+    p.values[ est < 0 ] <- 1-p.values[ est < 0 ]
+    
+    fdr <- p.adjust(p.values, method = "fdr")
+    
+    prev_include <- include
+    include[include] <- fdr < 0.01
+  }
   
-  theta_optim <- optim( par=initial_theta, fn=logistic_cost, X=X, Y=Y )
-  coefs <- theta_optim$par
-  coefs[ 2:ncoef ] <- exp( coefs[ 2:ncoef ] )
-  return( coefs )
+  coefs <- rep( 0, ncol(X) )
+  coefs[include] <- est
+  return( c(coef(summary(fit.glm))[1,1],coefs) )
 }
 
 
@@ -80,6 +80,7 @@ write.table( coefs, paste0("./out/",jobLabel,"/logistic_regression.coefficients.
 
 # Display a ROC curve of the predictions
 predicted <- logistic_predict( coefs, as.matrix( hmm_scores[,3:ncolumns,with=F] ) )
+write.table( cbind( hmm_scores[,1:2,with=F], predicted), paste0("./out/",jobLabel,"/predicted_scores.txt"), sep="\t", quote=F, row.names = F )
 myroc <- roc( hmm_scores$Status, c(predicted ) )
 par(mar=c(10,10,10,10))
 jpeg(file=paste0("./out/",jobLabel,"/graphs.logistic.ROC.jpg"),width=300,height=300)
@@ -110,16 +111,18 @@ for( i in 1:nmotifs )
 {
   range <- as.numeric( strsplit( strsplit( strsplit( motif_names[i], ":" )[[1]][2], "\\|"  )[[1]][1], "-" )[[1]] )
   max_zf <- max( max_zf, range )
-  zfs[ i, range[1]:range[2] ] <- 1/(range[2]-range[1]+1)
+  zfs[ i, range[1]:range[2] ] <- 1
 }
+
+weighted_hmm_scores <- t( apply( weighted_hmm_scores, 1, function(x) { y <- x; y[x!=max(x)] <- 0; return(y) }  ) )
 
 # Create a profile representing the weighted probability of binding of each sequence to each ZF
 meta_pfm_profile <- weighted_hmm_scores %*% zfs[ , 1:max_zf ]
-meta_pfm_profile <- meta_pfm_profile + coefs[1]/max_zf
+#meta_pfm_profile <- meta_pfm_profile + coefs[1]
 
 # Display the profile in a heatmap
 jpeg(file=paste0("./out/",jobLabel,"/graphs.ZF_binding_scores.jpg"),width=500,height=800)
-heatmap.2( meta_pfm_profile[ hmm_scores$Status==1, ], hclustfun = function(x) hclust(x,method =  "complete"), margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 0.6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+heatmap.2( meta_pfm_profile[ hmm_scores$Status==1, ], hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) 1000*dist(x,method="binary")+dist(x,method="maximum"), margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
 write.table( cbind( hmm_scores[,1:2,with=F], meta_pfm_profile), paste0("./out/",jobLabel,"/graphs.ZF_binding_scores.txt"), sep="\t", quote=F, row.names = F )
 new_device <- dev.off()
 cat("Done!\n")
