@@ -176,7 +176,7 @@ int calculate_optimized_enrichments(
 	cout << "Motif" << char(9) << "k" << char(9) << "n" << char(9) << "K" << char(9) << "N" << char(9) << "P-value" << endl;
 	for( i = 0; i < num_motifs; i ++ )
 	{
-		motifs[ j ] ->PFM_optimized = 0; // reset the PFM_optimized status to zero
+		motifs[ i ] ->PFM_optimized = 0; // reset the PFM_optimized status to zero
 		scan_sequences( seqs, num_seqs, motifs[ i ] ->opt_PFM, motifs[ i ] ->PWM_width, BOTH_STRANDS );
 
 		// count the number of positive sequences among the top 100 that have the highest score for this PFM
@@ -198,8 +198,10 @@ int calculate_optimized_enrichments(
 	for( i = num_motifs - 1; i >= 0; i -- )
 		if( motifs[ i ] ->p_hyper * num_motifs / (i+1.0) <= 0.01 ) // this is the motif that passes the cutoff
 		{
-			motifs[ i ] ->PFM_optimized = 1;
-			break;
+		  // motifs[ i ] ->PFM_optimized = 1;
+		  for( j = 0; j <= i; j ++ )
+		    motifs[ j ] ->PFM_optimized = 1;
+		  break;
 		}
 
 	num_motifs = i+1; // i+1 motifs pass this filter
