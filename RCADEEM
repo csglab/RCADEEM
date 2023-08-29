@@ -1,0 +1,65 @@
+#!/bin/env python3
+"""
+docstring sdfsdf
+"""
+import argparse
+import os
+import sys
+from src._python import RCADEEM
+import os.path
+
+parser = argparse.ArgumentParser(description='')
+
+parser.add_argument("--task", dest="TASK",
+                    action="store", default="default_none",
+                    nargs="*", help="tasks: RCADEEM, HEATMAP")
+
+parser.add_argument("--job_ID", dest="JOB_ID", action="store",
+                    default="default_none",
+                    help='Experiment ID. ex: CTCF_rep2_HEK293')
+
+parser.add_argument("--out_dir", dest="OUT_DIR", action="store",
+                    default="./out/test_python", help="IN_DIR")
+
+####################  Input Files  ####################
+parser.add_argument("--C2H2_ZFP_fasta", dest="ZFP_FA", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--ChIP_seq_fasta", dest="CHIP_FA", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--meme_lib_exec_meme_dir", dest="MEME_DIR", action="store",
+                    default="none",
+                    help="")
+
+
+args = parser.parse_args()
+        
+if __name__ == '__main__':
+
+    if args.MEME_DIR == "none":
+        args.MEME_DIR = "/home/ahcorcha/repos/tools/meme/libexec/meme-5.5.3"
+
+    args.script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+
+
+    args.OUT_PREFIX = args.OUT_DIR + "/" + args.JOB_ID + "_"
+    log= open(args.OUT_PREFIX + "commands.log", "w")
+    log.write("Start test\n")
+
+
+    if "RCADEEM" in args.TASK:
+        print("Running RCADEEM ...")
+        RCADEEM.RCADEEM(args, log )
+
+
+    # if "HEATMAP" in args.TASK:
+    #     print("De novo motif finding with JAMS")
+    #     methyl_chip.de_novo_motif_finding(args)
+    
+
+    log.write("\n\n")
+    log.close()
+    
