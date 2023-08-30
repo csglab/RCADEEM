@@ -6,9 +6,13 @@ import argparse
 import os
 import sys
 from src._python import RCADEEM
+from src._python import align_multivalent_sites
 import os.path
 
 parser = argparse.ArgumentParser(description='')
+
+parser.add_argument("--meme_lib_exec_meme_dir", dest="MEME_DIR", 
+                    action="store", default="none", help="")
 
 parser.add_argument("--task", dest="TASK",
                     action="store", default="default_none",
@@ -30,10 +34,25 @@ parser.add_argument("--ChIP_seq_fasta", dest="CHIP_FA", action="store",
                     default="default_none",
                     help="")
 
-parser.add_argument("--meme_lib_exec_meme_dir", dest="MEME_DIR", action="store",
-                    default="none",
+parser.add_argument("--genome_fasta", dest="GENOME_FA", action="store",
+                    default="default_none",
                     help="")
 
+parser.add_argument("--chr_sizes", dest="CHR_SIZES", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--range", dest="RANGE", action="store",
+                    default="100",
+                    help="")
+
+parser.add_argument("--cutoff", dest="CUTOFF", action="store",
+                    default="0.2",
+                    help="")
+
+parser.add_argument("--minsize", dest="MINSIZE", action="store",
+                    default="0.1",
+                    help="")
 
 args = parser.parse_args()
         
@@ -45,19 +64,25 @@ if __name__ == '__main__':
     args.script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+    args.OUT_DIR = args.OUT_DIR + "/" + args.JOB_ID
+
+    if not os.path.exists(args.OUT_DIR): os.makedirs(args.OUT_DIR)
+
     args.OUT_PREFIX = args.OUT_DIR + "/" + args.JOB_ID + "_"
+
+
     log= open(args.OUT_PREFIX + "commands.log", "w")
     log.write("Start test\n")
 
 
     if "RCADEEM" in args.TASK:
         print("Running RCADEEM ...")
-        RCADEEM.RCADEEM(args, log )
+        RCADEEM.RCADEEM( args, log )
 
 
-    # if "HEATMAP" in args.TASK:
-    #     print("De novo motif finding with JAMS")
-    #     methyl_chip.de_novo_motif_finding(args)
+    if "HEATMAP" in args.TASK:
+        print("align multivalent sites ...")
+        align_multivalent_sites.align_multivalent_sites( args, log )
     
 
     log.write("\n\n")

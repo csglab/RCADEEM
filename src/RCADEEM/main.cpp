@@ -73,27 +73,27 @@ int main( int argc, char* argv[] )
 	//******************* open output
 
 	ofstream ofs_PFM;
-	if( !open_output( ofs_PFM, __output_file, ".PFM.txt" ) )
+	if( !open_output( ofs_PFM, __output_file, "PFM.txt" ) )
 		return 1;
 
 	ofstream ofs_opt_PFM;
-	if( !open_output( ofs_opt_PFM, __output_file, ".opt.PFM.txt" ) )
+	if( !open_output( ofs_opt_PFM, __output_file, "opt_PFM.txt" ) )
 		return 1;
 
 	ofstream ofs_ps;
-	if( !open_output( ofs_ps, __output_file, ".ps" ) )
+	if( !open_output( ofs_ps, __output_file, "motifs.ps" ) )
 		return 1;
 
 	ofstream ofs_report;
-	if( !open_output( ofs_report, __output_file, ".report.txt" ) )
+	if( !open_output( ofs_report, __output_file, "report.txt" ) )
 		return 1;
 
 	ofstream ofs_scores;
-	if( !open_output( ofs_scores, __output_file, ".PFM.scores.txt" ) )
+	if( !open_output( ofs_scores, __output_file, "PFM_scores.txt" ) )
 		return 1;
 
 	ofstream ofs_metaPFM_scores;
-	if( !open_output( ofs_metaPFM_scores, __output_file, ".metaPFM.profiles.txt" ) )
+	if( !open_output( ofs_metaPFM_scores, __output_file, "metaPFM_profiles.txt" ) )
 		return 1;
 
 	//******************* open the result file

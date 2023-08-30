@@ -1,11 +1,6 @@
 import csv   
-import subprocess
 import os
-
-def run_cmd( cmd, log ):
-    print( cmd )
-    subprocess.call( cmd, shell = True )
-    log.write("%s\n" % ( cmd ))
+from src._python import utils
 
 
 def RCADEEM( args, log ):
@@ -45,9 +40,9 @@ def RCADEEM( args, log ):
 
     log_step1 = args.OUT_PREFIX + "log_step1.txt"
     log_step2 = args.OUT_PREFIX + "log_step2.txt"
-    report = args.OUT_PREFIX + ".report.txt"
+    report = args.OUT_PREFIX + "report.txt"
     RF_out = args.OUT_PREFIX + "RF_out.txt"
-    PFM_scores = args.OUT_PREFIX + ".PFM.scores.txt"
+    PFM_scores = args.OUT_PREFIX + "PFM_scores.txt"
 
     log_info = args.OUT_PREFIX + "log.info.txt"
     log_error = args.OUT_PREFIX + "log.error.txt"
@@ -57,18 +52,18 @@ def RCADEEM( args, log ):
     # get the central region of the sequences, and also dinucleotide-shuffled sequences                                                               
     cmdline='%s/fasta-center -len 100 < %s 1> %s ' % \
         ( args.MEME_DIR, args.CHIP_FA, centered )
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
     
     cmdline='%s/fasta-dinucleotide-shuffle -f %s -t -dinuc 1> %s ' % \
         ( args.MEME_DIR, centered, shuffled )
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
     cmdline='cat %s %s > %s' % (centered, shuffled, all)
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
 
     if os.path.exists(log_step1): os.remove(log_step1) 
-    # if os.path.exists(log_step2): os.remove(log_step2) 
+    if os.path.exists(log_step2): os.remove(log_step2) 
 
 
     for i in [3, 4, 5, 6, 7, 8]:
@@ -77,36 +72,36 @@ def RCADEEM( args, log ):
         
         cmdline = '%s/bin/FASTAtoRF -minl 2 -maxl 8 -span %s -fasta %s -out %s.span%s >>%s' % \
             ( args.script_path, i, args.ZFP_FA, tmp_RF_in, i, log_step1 )
-        run_cmd(cmdline, log)
+        utils.run_cmd(cmdline, log)
 
         if i == 3:
-             cmdline = 'cat %s.span%s > %s' % \
+            cmdline = 'cat %s.span%s > %s' % \
                 (tmp_RF_in, i, tmp_RF_in)
-             run_cmd(cmdline, log)
+            utils.run_cmd(cmdline, log)
 
         else:
             cmdline = 'cat %s.span%s | sed 1d >> %s' % \
                 (tmp_RF_in, i, tmp_RF_in)
-            run_cmd(cmdline, log)
+            utils.run_cmd(cmdline, log)
 
 
     ####################### run the RF script, and reformat it for the next step
     cmdline = 'Rscript %s/src/_R/_predict.RF.R --src_dir %s --predict_in %s --predict_out %s' % \
         (args.script_path, args.script_path + "/src/_R", tmp_RF_in, tmp_RF_out)
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
     cmdline = """sed 's/"//g' %s > %s""" % \
         (tmp_RF_out, RF_out)
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
     ####################### run the RCADEEM script
     cmdline = '%s/bin/RCADEEM -rf %s -fasta %s -out %s -mode 3  >>%s ' % \
         (args.script_path, RF_out, all, args.OUT_PREFIX, log_step2)
-    # run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
     cmdline = 'Rscript %s/src/_R/_process_RCADEEM_results.R --prefix %s --results %s  ' % \
         (args.script_path,  args.OUT_PREFIX, PFM_scores)
-    run_cmd(cmdline, log)
+    utils.run_cmd(cmdline, log)
 
 
     #*****************************************************************************************                                                                                                    
