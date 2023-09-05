@@ -55,7 +55,7 @@ def align_multivalent_sites( args, log ):
     sed 's/N/\\t-1/g' | sed 's/\\t\\t/\\t/g' | sed 's/::[^\\t]*(/\\t/g' | sed 's/)//g' > {align_num} """
     utils.run_cmd(cmdline, log)
 
-    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_prefix {args.OUT_ALIGN_PREFIX} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} """
+    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_prefix {args.OUT_ALIGN_PREFIX} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID}"""
     utils.run_cmd(cmdline, log)
 
 

@@ -21,7 +21,7 @@ hamming <- function(X) {
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--out_prefix"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/align_multivalent_sites/test_",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -33,16 +33,21 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/test_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_weighted_PFM_scores.txt",
               help=""),
   
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/test_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--align_num"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/align_multivalent_sites/test_aligned_sequences.numeric.mx.txt",
-              help="") );
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_aligned_sequences_numeric_mx.txt",
+              help=""),
+  
+  make_option(c("-g", "--title"), type="character",
+              default="ZN107_top_500",
+              help="")  
+  );
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser); rm(option_list, opt_parser)
@@ -104,13 +109,6 @@ sum( seq$Gene != weighted_zf$Gene )
 # calculat the distance matrices
 
 cat("Clustering the sequences ...\n")
-# a <- seq[, (3+as.integer(seq_len/2)) : (3+as.integer(seq_len/2)+nzfs*3) ]
-# # 
-# (3+as.integer(seq_len/2))
-# # 
-# # 
-# (3+as.integer(seq_len/2)+nzfs*3)
-# nzfs
 
 dist_seq <- hamming( t( as.matrix( seq[,(3+as.integer(seq_len/2)):(3+as.integer(seq_len/2)+nzfs*3)] ) ) )
 
@@ -123,7 +121,7 @@ dist_zfs <- as.matrix( dist( as.matrix( weighted_zf[,3:(2+nzfs)] ), method="bina
 ratios <- c(1,10000,100)
 distmx <-  as.dist( dist_seq*ratios[1] + dist_motifs*ratios[2] + dist_zfs*ratios[3] )
 
-jpeg(file=paste0(opt$out_prefix,"clustered.sequene_heatmap.jpg"),
+jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
      width=1000,height=1000)
 dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) distmx, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 3, length.out=256),col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), labRow = F, xlab = "Position", ylab = "Peaks", key.title = "", key.xlab = "Nucleotides", key.ylab = "", density.info="none", lhei = c(0.3,2) )
 dev.off()
@@ -136,10 +134,6 @@ dev.off()
 
 write.table(seq$Gene[rev(dendrogram$rowInd)],paste0(opt$out_prefix,"clustered.gene_order.txt"), col.names = F, row.names = F, quote=F, sep="\t")
 write.table(binary_hmm[rev(dendrogram$rowInd),],paste0(opt$out_prefix,"clustered.motif_assignment.txt"), row.names = F, quote=F, sep="\t")
-
-
-
-
 
 
 
@@ -190,7 +184,6 @@ data_ht[,seq_cols][ data_ht[,seq_cols] == "2" ] <- "G"
 data_ht[,seq_cols][ data_ht[,seq_cols] == "3" ] <- "T"
 data_ht[,seq_cols][ data_ht[,seq_cols] == "-1" ] <- "N"
 
-
 my_use_raster <- TRUE
 
 htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ), 
@@ -198,6 +191,7 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    raster_quality = 2,
                                    cluster_columns = FALSE,
                                    cluster_rows = TRUE,
+                                   clustering_distance_rows = "spearman",
                                    show_column_names =  TRUE,
                                    show_row_names  =  FALSE,
                                    col = col_fun_zf,
@@ -206,7 +200,6 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    # rect_gp = gpar(col = "grey", lwd = 1),
                                    border_gp = gpar(col = "black"), 
                                    heatmap_legend_param = list(legend_direction = "horizontal") )
-
 
 htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ), 
                                     use_raster = my_use_raster,
@@ -221,19 +214,17 @@ htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     border_gp = gpar(col = "black"), 
                                     heatmap_legend_param = list(legend_direction = "horizontal"))
 
-
-
 all_htm <- htm_zf + htm_seq 
 
-pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), width = 20, height = 20 )
+pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
+     width = 20, height = 20 )
 
 draw( all_htm, ht_gap = unit( 0.25, "cm" ), 
-      column_title = paste0( "\nn = ", nrow(data_ht)),
+      column_title = paste0( opt$title, "\nn = ", nrow(data_ht)),
       merge_legends = FALSE,
       heatmap_legend_side = "bottom", annotation_legend_side = "right" )
 
 dev.off()
-
 
 write.table(file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab"), 
             x = data_ht, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)

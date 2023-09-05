@@ -2,6 +2,13 @@ import csv
 import os
 from src._python import utils
 
+def end_with_err(log_f, msg):
+        
+    print(msg)
+    with open(log_f, "w") as f:
+        f.write(msg)
+        exit(2)
+
 
 def RCADEEM( args, log ):
     
@@ -112,77 +119,23 @@ def RCADEEM( args, log ):
     # ./out/<jobID>/log.error.txt                                                                                                                                                                 
     #*****************************************************************************************  
     info = ""
-    err = ""
 
-    ### Checks for optimized motifs
-    with open(report) as f:
-        reader = csv.reader(f, delimiter="\t")
-        report_d = list(reader)
-
-    num_opt_motifs = sum( [ int(row[2]) for row in report_d[1:]] )
-
-    if num_opt_motifs >= 1:
-        msg = "The predicted motifs of " + str(num_opt_motifs) + " possible C2H2-ZF arrays were enriched in the ChIP-seq peaks.\n"
-        print( msg ); info += msg
-    else:
-        msg = "ERROR: None of the predicted motifs from the provided C2H2-ZF proteins were enriched in the ChIP-seq peaks.\n"
-        print(msg); err += msg
-
+    with open(log_step1) as f:
+        log_step1_f = f.readlines()
 
     with open(log_step2) as f:
-        log_step2_d = f.readlines()
+        log_step2_f = f.readlines()
+
+    with open(report) as f:
+        reader = csv.reader(f, delimiter="\t")
+        report_f = list(reader)
 
 
-    ### check if the peak sequence file had any valid sequences
-    for row in log_step2_d:
 
-        if "sequences were read," in row:
-
-            read_seq = row.split(" ")[0]
-
-            if str( read_seq ) == "ERROR:" or str( read_seq ) == "":
-                msg = "ERROR: No sequences were found in the input FASTA for ChIP-seq peaks. Please check the input format.\n"
-                print(msg); err += msg
-
-            elif int( read_seq ) % 2 == 0:
-                msg = str( read_seq ) + " sequences were found in the input FASTA for ChIP-seq peaks.\n"
-                print(msg); info += msg
-                break
-
-
-    ### check if the C2H2-ZF sequences have had any ZF arrays
-    for row in log_step2_d:
-
-        if "motifs were read." in row:
-            
-            motif_read = row.split(" ")[0]
-
-            if str( motif_read ) == "ERROR:" or str( motif_read ) == "":
-                msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
-                print(msg); err += msg
-            
-            elif int(motif_read) <= 0:
-                msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
-                print(msg); err += msg
-
-            else:
-                msg = str( motif_read ) + " possible C2H2-ZF arrays were tested.\n"
-                print(msg); info += msg
-                break
-    
-    for row in log_step2_d:
-        if "ERROR: No motifs are enriched." in row:
-            msg = "ERROR: No motifs are enriched.\n"
-            print(msg); err += msg
-            break
-            
 
 
     ### check if the C2H2-ZF file had any valid sequences
-    with open(log_step1) as f:
-        log_step1_d = f.readlines()
-
-    for row in log_step1_d:
+    for row in log_step1_f:
 
         if "sequences were read." in row:
 
@@ -190,24 +143,89 @@ def RCADEEM( args, log ):
 
             if str( read_seq ) == "ERROR:" or str( read_seq ) == "":
                 msg = "ERROR: No sequences were found in the input FASTA for C2H2-ZF proteins. Please check the input format.\n"
-                print(msg); err += msg
-            
+                end_with_err(log_error, msg)
+
             elif int( read_seq ) <= 0:
-                print(msg); err += msg
+                msg = "ERROR: No sequences were found in the input FASTA for C2H2-ZF proteins. Please check the input format.\n"
+                end_with_err(log_error, msg)
+
             else:
                 msg = str(read_seq) + " sequences were found in the input FASTA for C2H2-ZF proteins.\n"
                 print(msg); info += msg
                 break
 
 
-    if err == "":
-        with open(log_info, "w") as f:
-            f.write(info)
+
+
+
+    ### check if the peak sequence file had any valid sequences
+    for row in log_step2_f:
+
+        if "sequences were read," in row:
+
+            read_seq = row.split(" ")[0]
+
+            if str( read_seq ) == "ERROR:" or str( read_seq ) == "":
+                msg = "ERROR: No sequences were found in the input FASTA for ChIP-seq peaks. Please check the input format.\n"
+                end_with_err(log_error, msg)
+
+
+            elif int( read_seq ) % 2 == 0:
+                msg = str( read_seq ) + " sequences were found in the input FASTA for ChIP-seq peaks.\n"
+                print(msg); info += msg
+                break
+
+
+
+    ### check if the C2H2-ZF sequences have had any ZF arrays
+    for row in log_step2_f:
+
+        if "motifs were read." in row:
+            
+            motif_read = row.split(" ")[0]
+
+            if str( motif_read ) == "ERROR:" or str( motif_read ) == "":
+                msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
+                end_with_err(log_error, msg)
+            
+            elif int(motif_read) <= 0:
+                msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
+                end_with_err(log_error, msg)
+
+            else:
+                msg = str( motif_read ) + " possible C2H2-ZF arrays were tested.\n"
+                print(msg); info += msg
+                break
+
+
+
+    for row in log_step2_f:
+        if "ERROR: No motifs are enriched." in row:
+            msg = "ERROR: No motifs are enriched.\n"
+            end_with_err(log_error, msg)
+
+        if "ERROR: The file has no EOL character." in row:
+            msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
+            end_with_err(log_error, msg)
+
+
+
+
+    ### Checks for optimized motifs
+    num_opt_motifs = sum( [ int(row[2]) for row in report_f[1:]] )
+
+    if num_opt_motifs >= 1:
+        msg = "The predicted motifs of " + str(num_opt_motifs) + " possible C2H2-ZF arrays were enriched in the ChIP-seq peaks.\n"
+        print( msg ); info += msg
     else:
-        with open(log_error, "w") as f:
-            f.write(err)
+        msg = "ERROR: None of the predicted motifs from the provided C2H2-ZF proteins were enriched in the ChIP-seq peaks.\n"
+        end_with_err(log_error, msg)
 
 
+
+
+    with open(log_info, "w") as f:
+        f.write(info)
 
 
 
