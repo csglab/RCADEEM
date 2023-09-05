@@ -161,14 +161,21 @@ def RCADEEM( args, log ):
                 msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
                 print(msg); err += msg
             
-            # elif int(motif_read) <= 0:
-            #     msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
-            #     print(msg); err += msg
+            elif int(motif_read) <= 0:
+                msg = "ERROR: The input C2H2-ZF sequences must have at least two adjacent canonical C2H2-ZF domains.\n"
+                print(msg); err += msg
 
             else:
                 msg = str( motif_read ) + " possible C2H2-ZF arrays were tested.\n"
                 print(msg); info += msg
                 break
+    
+    for row in log_step2_d:
+        if "ERROR: No motifs are enriched." in row:
+            msg = "ERROR: No motifs are enriched.\n"
+            print(msg); err += msg
+            break
+            
 
 
     ### check if the C2H2-ZF file had any valid sequences

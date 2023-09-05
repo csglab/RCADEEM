@@ -26,7 +26,7 @@ def align_multivalent_sites( args, log ):
 
     cmdline = f"""cat {PFM_scores} | 
     awk 'NR>1 && $2==1 {lbrack} split($1,a,":"); split(a[2],b,"-"); 
-    printf("%s\\t%s\\t%s\\t%s\\t.\\n",a[1],b[1]+200,b[1]+200+100,$1); {rbrack}' > {center_bed} """
+    printf("%s\\t%s\\t%s\\t%s\\t.\\n",a[1],b[1]+200,b[1]+200+100,$1); {rbrack}' | sed -e 's/CHR/chr/g' - > {center_bed} """    
     utils.run_cmd(cmdline, log)
 
     ####### create fasta file of actual peaks
