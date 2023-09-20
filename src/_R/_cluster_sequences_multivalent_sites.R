@@ -152,6 +152,9 @@ ht_seq$Gene <- seq$Gene
 
 data_ht <- merge(x = ht_weighted_zf, y = ht_seq, by = "Gene" )
 
+data_ht$sum <- rowSums(data_ht[,zf_cols])
+data_ht <- data_ht[ order(data_ht$sum),]
+
 
 
 ########### Color scale Zinc finger
@@ -163,7 +166,6 @@ col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols]), mid, max(ht_weighte
 
 # col_fun_zf <- colorRamp2( c( 0, 3, 6),
 #                           c( "white", "yellow", "red" ) )
-
 
 ########### Color scale sequence
 # colors_bases <- structure( c("#ff0000", "#ffb200", "#0000ff", "#008000"), 
