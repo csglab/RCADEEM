@@ -166,10 +166,10 @@ col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols]), mid, max(ht_weighte
 
 
 ########### Color scale sequence
-colors_bases <- structure( c("#ff0000", "#ffb200", "#0000ff", "#008000"), 
-                           names = c( "0", "2", "1", "3" ) )
+# colors_bases <- structure( c("#ff0000", "#ffb200", "#0000ff", "#008000"), 
+#                            names = c( "0", "2", "1", "3" ) )
 
-colors_bases <- structure( c("#ff0000", "#ffb200", "#0000ff", "#008000"), 
+colors_bases <- structure( c("#008000", "#ffb200", "#0000ff", "#ff0000"), 
                            names = c( "A", "G", "C", "T" ) )
 
 # A = 0
@@ -198,7 +198,7 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    name = "Zinc_finger_score",
                                    column_title = "Zinc_finger",
                                    # rect_gp = gpar(col = "grey", lwd = 1),
-                                   border_gp = gpar(col = "black"), 
+                                   # border_gp = gpar(col = "black"), 
                                    heatmap_legend_param = list(legend_direction = "horizontal") )
 
 htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ), 
@@ -211,7 +211,7 @@ htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     col = colors_bases,
                                     name = "Sequence",
                                     column_title = "Sequence",
-                                    border_gp = gpar(col = "black"), 
+                                    # border_gp = gpar(col = "black"), 
                                     heatmap_legend_param = list(legend_direction = "horizontal"))
 
 all_htm <- htm_zf + htm_seq 

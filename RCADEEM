@@ -60,6 +60,13 @@ if __name__ == '__main__':
 
     if args.MEME_DIR == "none":
         args.MEME_DIR = "/home/ahcorcha/repos/tools/meme/libexec/meme-5.5.3"
+        # args.MEME_DIR = "/home/ahcorcha/tools/meme/libexec/meme-5.4.1"
+ 
+    if not os.path.isfile(args.MEME_DIR+"/fasta-center") or \
+        not os.path.isfile(args.MEME_DIR+"/fasta-dinucleotide-shuffle"):
+        print("ERROR: fasta-center or fasta-dinucleotide-shuffle not found")
+        exit(2)
+
 
     args.script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
