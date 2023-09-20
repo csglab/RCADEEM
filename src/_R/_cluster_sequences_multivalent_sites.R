@@ -21,7 +21,7 @@ hamming <- function(X) {
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--out_prefix"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/RCADEEM_report/GLI4_top_500/align_multivalent_sites/GLI4_top_500_",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -33,15 +33,15 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/RCADEEM_report/GLI4_top_500/GLI4_top_500_graphs_weighted_PFM_scores.txt",
               help=""),
   
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/RCADEEM_report/GLI4_top_500/GLI4_top_500_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--align_num"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_aligned_sequences_numeric_mx.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/RCADEEM_report/GLI4_top_500/align_multivalent_sites/GLI4_top_500_aligned_sequences_numeric_mx.txt",
               help=""),
   
   make_option(c("-g", "--title"), type="character",
@@ -126,6 +126,7 @@ jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
 dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) distmx, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 3, length.out=256),col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), labRow = F, xlab = "Position", ylab = "Peaks", key.title = "", key.xlab = "Nucleotides", key.ylab = "", density.info="none", lhei = c(0.3,2) )
 dev.off()
 
+
 jpeg(file=paste0(opt$out_prefix,"clustered.zf_heatmap.jpg"),
      width=1000,height=1000)
 heatmap.2( as.matrix( weighted_zf[,3:(2+nzfs)] ), Rowv=dendrogram$rowDendrogram, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
@@ -188,12 +189,21 @@ data_ht[,seq_cols][ data_ht[,seq_cols] == "-1" ] <- "N"
 
 my_use_raster <- TRUE
 
+
+
+hamming_dist <- function(x, y){
+  x[ x != 0 ] <- 1
+  y[ y != 0 ] <- 1
+  sum(x != y)
+  }
+
 htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ), 
                                    use_raster = my_use_raster,
                                    raster_quality = 2,
                                    cluster_columns = FALSE,
                                    cluster_rows = TRUE,
-                                   clustering_distance_rows = "spearman",
+                                   row_dend_reorder = TRUE,
+                                   clustering_distance_rows = hamming_dist,
                                    show_column_names =  TRUE,
                                    show_row_names  =  FALSE,
                                    col = col_fun_zf,
@@ -202,6 +212,9 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    # rect_gp = gpar(col = "grey", lwd = 1),
                                    # border_gp = gpar(col = "black"), 
                                    heatmap_legend_param = list(legend_direction = "horizontal") )
+
+
+
 
 htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ), 
                                     use_raster = my_use_raster,
