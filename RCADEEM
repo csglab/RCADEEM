@@ -54,6 +54,15 @@ parser.add_argument("--minsize", dest="MINSIZE", action="store",
                     default="0.1",
                     help="")
 
+parser.add_argument("--bw", dest="BW_FILE", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--ref_repeats", dest="REF_REPEATS", action="store",
+                    default="default_none",
+                    help="")
+
+
 args = parser.parse_args()
         
 if __name__ == '__main__':

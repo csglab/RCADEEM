@@ -1,4 +1,5 @@
 import os
+import csv
 from src._python import utils
 
 def align_multivalent_sites( args, log ):
@@ -23,6 +24,12 @@ def align_multivalent_sites( args, log ):
     ZF_binding_score = args.OUT_PREFIX + "graphs_ZF_binding_scores.txt"
 
 
+    align_pos_centered = args.OUT_ALIGN_PREFIX + "aligned_positions_centered_to_metaPFM.bed"
+    ref_repeats = args.REF_REPEATS  # args.script_path + "/ref/UCSC_table_hg38_track_RepeatMasker_summary_sorted.bed"
+    overlapped_repeats = args.OUT_ALIGN_PREFIX + "aligned_positions_overlapping_repeats.bed"
+    computeMatrix_out = args.OUT_ALIGN_PREFIX + "bw_cov_computeMatrix_out.tab.gz"
+    bw_flanking_len = 2000
+
 
     cmdline = f"""cat {PFM_scores} | 
     awk 'NR>1 && $2==1 {lbrack} split($1,a,":"); split(a[2],b,"-"); 
@@ -35,6 +42,7 @@ def align_multivalent_sites( args, log ):
     sed -e 's/CHR/chr/g' - > {center_fa} """
     utils.run_cmd(cmdline, log)
 
+    
     cmdline = f""" {args.script_path}/src/AffiMx -pwm {OPT_PFM} -fasta {center_fa} -out {center_aff} """
     utils.run_cmd(cmdline, log)
 
@@ -51,11 +59,43 @@ def align_multivalent_sites( args, log ):
     awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,toupper($2) {rbrack}' - > {align_fa}"""
     utils.run_cmd(cmdline, log)
 
+
     cmdline = f"""cat {align_fa} | sed 's/A/\\t0/g' | sed 's/C/\\t1/g' | sed 's/G/\\t2/g' | sed 's/T/\\t3/g' | 
     sed 's/N/\\t-1/g' | sed 's/\\t\\t/\\t/g' | sed 's/::[^\\t]*(/\\t/g' | sed 's/)//g' > {align_num} """
     utils.run_cmd(cmdline, log)
 
-    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_prefix {args.OUT_ALIGN_PREFIX} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID}"""
+
+
+    #### Get length of meta PFM
+    metaPFM_profiles = args.OUT_PREFIX + "metaPFM_profiles.txt"
+    with open(metaPFM_profiles) as f:
+        reader = csv.reader(f, delimiter='\t')
+        first_row = next(reader)
+        meta_PFM_len = len(first_row) - 2
+
+    
+    
+    #### Create bed file which center is the center of the meta PFM
+    cmdline = f"""awk -v FS="\\t" -v OFS="\\t" -v len=$(( ${meta_PFM_len}/2 )) '{lbrack}print $1,int($2+len),int($3+len),$4,$5,$6,$7{rbrack}' {align_pos} > {align_pos_centered}"""
+    utils.run_cmd(cmdline, log)
+
+
+    #### Get Coverage over BW +/- 2k around centered (on the meta PFM) aligned positions
+    if (args.BW_FILE == "default_none"):
+        computeMatrix_out = "default_none"
+    else:
+        cmdline = f"""computeMatrix reference-point --referencePoint center --downstream {bw_flanking_len} --upstream {bw_flanking_len} --regionsFileName {align_pos_centered} --scoreFileName {args.BW_FILE} --outFileName {computeMatrix_out} --binSize 100 --sortRegions keep --averageTypeBins mean --numberOfProcessors 1"""
+        utils.run_cmd(cmdline, log)
+
+    #### Get overlapping repeats
+    cmdline = f"""sort -k1,1 -k2,2n {align_pos} |
+    awk -v FS="\\t" -v OFS="\\t" -v len={meta_PFM_len} '{lbrack} print $1,$2,$3+len,$4,$5,$6{rbrack}' - |
+    bedtools closest -D ref -a - -b {args.REF_REPEATS} > {overlapped_repeats} """
+    utils.run_cmd(cmdline, log)
+
+
+    #### Create aligned heatmaps
+    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_prefix {args.OUT_ALIGN_PREFIX} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID} --computeMatrix {computeMatrix_out} --repeats_info {overlapped_repeats} """
     utils.run_cmd(cmdline, log)
 
 
