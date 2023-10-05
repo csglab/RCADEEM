@@ -3,7 +3,6 @@ library(data.table)
 suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(ComplexHeatmap))
 library(gplots)
-library(data.table)
 library(optparse)
 set.seed(1)
 
@@ -27,41 +26,115 @@ hamming_dist <- function(x, y){
   }
 
 ########################################################   IN and load data ####
+# option_list = list(
+#   make_option(c("-a", "--out_prefix"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test2_",
+#               help=""),
+#   
+#   make_option(c("-b", "--cutoff"), type="character",
+#               default=0.2,
+#               help=""),  
+# 
+#   make_option(c("-c", "--minsize"), type="character",
+#               default=0.1,
+#               help=""),
+# 
+#   make_option(c("-d", "--weighted_PFM"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/CTCF_test_graphs_weighted_PFM_scores.txt",
+#               help=""),
+#   
+#   make_option(c("-e", "--ZF_binding_scores"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/CTCF_test_graphs_ZF_binding_scores.txt",
+#               help=""),
+#   
+#   make_option(c("-f", "--align_num"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_aligned_sequences_numeric_mx.txt",
+#               help=""),
+#   
+#   make_option(c("-g", "--title"), type="character",
+#               default="CTCF mini test",
+#               help=""),
+#   
+#   make_option(c("-i", "--computeMatrix"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_computeMatrix_out.tab.gz",
+#               help=""),
+#   
+#   make_option(c("-j", "--repeats_info"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_aligned_positions_overlap_repeats.bed",
+#               help="")
+#   );
+
+# option_list = list(
+#   make_option(c("-a", "--out_prefix"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/align_multivalent_sites/YY1_top_2000_",
+#               help=""),
+#   
+#   make_option(c("-b", "--cutoff"), type="character",
+#               default=0.2,
+#               help=""),  
+# 
+#   make_option(c("-c", "--minsize"), type="character",
+#               default=0.1,
+#               help=""),
+# 
+#   make_option(c("-d", "--weighted_PFM"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/YY1_top_2000_graphs_weighted_PFM_scores.txt",
+#               help=""),
+#   
+#   make_option(c("-e", "--ZF_binding_scores"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/YY1_top_2000_graphs_ZF_binding_scores.txt",
+#               help=""),
+#   
+#   make_option(c("-f", "--align_num"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/align_multivalent_sites/YY1_top_2000_aligned_sequences_numeric_mx.txt",
+#               help=""),
+#   
+#   make_option(c("-g", "--title"), type="character",
+#               default="YY1_top_2000",
+#               help=""),
+#   
+#   make_option(c("-i", "--computeMatrix"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/align_multivalent_sites/YY1_top_2000_bw_cov_computeMatrix_out.tab.gz",
+#               help=""),
+#   
+#   make_option(c("-j", "--repeats_info"), type="character",
+#               default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_2000/align_multivalent_sites/YY1_top_2000_aligned_positions_overlapping_repeats.bed",
+#               help="")
+#   );
+
 option_list = list(
   make_option(c("-a", "--out_prefix"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test2_",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/align_multivalent_sites/YY1_top_500_",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
-              default=0.2,
-              help=""),  
+              default=0.2, help=""),  
 
   make_option(c("-c", "--minsize"), type="character",
-              default=0.1,
-              help=""),
+              default=0.1, help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/CTCF_test_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/YY1_top_500_graphs_weighted_PFM_scores.txt",
               help=""),
   
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/CTCF_test_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/YY1_top_500_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--align_num"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_aligned_sequences_numeric_mx.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/align_multivalent_sites/YY1_top_500_aligned_sequences_numeric_mx.txt",
               help=""),
   
   make_option(c("-g", "--title"), type="character",
-              default="CTCF mini test",
+              default="YY1_top_2000",
               help=""),
   
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_computeMatrix_out.tab.gz",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/align_multivalent_sites/YY1_top_500_bw_cov_computeMatrix_out.tab.gz",
               help=""),
   
   make_option(c("-j", "--repeats_info"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_test/align_multivalent_sites/CTCF_test_aligned_positions_overlap_repeats.bed",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/YY1_top_500/align_multivalent_sites/YY1_top_500_aligned_positions_overlapping_repeats.bed",
               help="")
   );
 
@@ -113,45 +186,43 @@ weighted_hmm <- weighted_hmm[ order(weighted_hmm$Gene), ]
 weighted_zf <- weighted_zf[ weighted_zf$Gene %in% genes, ]
 weighted_zf <- weighted_zf[ order(weighted_zf$Gene), ]
 
-# binarize the weighted_hmm matrix, keeping only the top-scoring motif for each row
-binary_hmm <- weighted_hmm
-binary_hmm[,3:(2+nmotifs)] <- t( apply( binary_hmm[,3:(2+nmotifs)], 1, function(x) ((x==max(x))*1) ) )
 
 
-# for debugging purposes, just to make sure the matrices are now compatible
-sum( seq$Gene != weighted_hmm$Gene )
-sum( seq$Gene != weighted_zf$Gene )
-
-# calculat the distance matrices
-
-cat("Clustering the sequences ...\n")
-
-dist_seq <- hamming( t( as.matrix( seq[,(3+as.integer(seq_len/2)):(3+as.integer(seq_len/2)+nzfs*3)] ) ) )
-
-
-
-
-dist_motifs <- hamming( t( as.matrix( binary_hmm[,3:(2+nmotifs)] ) ) )
-dist_zfs <- as.matrix( dist( as.matrix( weighted_zf[,3:(2+nzfs)] ), method="binary" ) )
-
-ratios <- c(1,10000,100)
-distmx <-  as.dist( dist_seq*ratios[1] + dist_motifs*ratios[2] + dist_zfs*ratios[3] )
-
-jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
-     width=1000,height=1000)
-dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) distmx, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 3, length.out=256),col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), labRow = F, xlab = "Position", ylab = "Peaks", key.title = "", key.xlab = "Nucleotides", key.ylab = "", density.info="none", lhei = c(0.3,2) )
-dev.off()
-
-
-jpeg(file=paste0(opt$out_prefix,"clustered.zf_heatmap.jpg"),
-     width=1000,height=1000)
-heatmap.2( as.matrix( weighted_zf[,3:(2+nzfs)] ), Rowv=dendrogram$rowDendrogram, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
-dev.off()
-
-
-write.table(seq$Gene[rev(dendrogram$rowInd)],paste0(opt$out_prefix,"clustered.gene_order.txt"), col.names = F, row.names = F, quote=F, sep="\t")
-write.table(binary_hmm[rev(dendrogram$rowInd),],paste0(opt$out_prefix,"clustered.motif_assignment.txt"), row.names = F, quote=F, sep="\t")
-
+if (nmotifs > 1) {
+  
+  # binarize the weighted_hmm matrix, keeping only the top-scoring motif for each row
+  binary_hmm <- weighted_hmm
+  
+  binary_hmm[,3:(2+nmotifs)] <- t( apply( binary_hmm[,3:(2+nmotifs)], 1, function(x) ((x==max(x))*1) ) )
+  
+  # for debugging purposes, just to make sure the matrices are now compatible
+  sum( seq$Gene != weighted_hmm$Gene )
+  sum( seq$Gene != weighted_zf$Gene )
+  
+  # calculat the distance matrices
+  
+  cat("Clustering the sequences ...\n")
+  dist_seq <- hamming( t( as.matrix( seq[,(3+as.integer(seq_len/2)):(3+as.integer(seq_len/2)+nzfs*3)] ) ) )
+  
+  dist_motifs <- hamming( t( as.matrix( binary_hmm[,3:(2+nmotifs)] ) ) )
+  dist_zfs <- as.matrix( dist( as.matrix( weighted_zf[,3:(2+nzfs)] ), method="binary" ) )
+  
+  ratios <- c(1,10000,100)
+  distmx <-  as.dist( dist_seq*ratios[1] + dist_motifs*ratios[2] + dist_zfs*ratios[3] )
+  
+  jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
+       width=1000,height=1000)
+  dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) distmx, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 3, length.out=256),col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), labRow = F, xlab = "Position", ylab = "Peaks", key.title = "", key.xlab = "Nucleotides", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  dev.off()
+  
+  jpeg(file=paste0(opt$out_prefix,"clustered.zf_heatmap.jpg"),
+       width=1000,height=1000)
+  heatmap.2( as.matrix( weighted_zf[,3:(2+nzfs)] ), Rowv=dendrogram$rowDendrogram, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  dev.off()
+  
+  write.table(seq$Gene[rev(dendrogram$rowInd)],paste0(opt$out_prefix,"clustered.gene_order.txt"), col.names = F, row.names = F, quote=F, sep="\t")
+  write.table(binary_hmm[rev(dendrogram$rowInd),],paste0(opt$out_prefix,"clustered.motif_assignment.txt"), row.names = F, quote=F, sep="\t")
+}
 
 
 
@@ -169,9 +240,8 @@ ht_seq$Gene <- seq$Gene
 
 
 data_ht <- merge(x = ht_weighted_zf, y = ht_seq, by = "Gene" )
-
 data_ht$sum <- rowSums(data_ht[,zf_cols])
-data_ht <- data_ht[ order(data_ht$sum),]
+
 
 data_ht$utilization_proportion <- ( rowSums(data_ht[,zf_cols]!=0) ) / length(zf_cols)
 
@@ -198,6 +268,8 @@ if ( (opt$computeMatrix != "default_none") ) {
   
 }
 
+
+
 ###############################################################################
 repeats <- as.data.frame(read.csv(file = opt$repeats_info, header = FALSE, sep = "\t"))
 repeats <- repeats[, c("V4", "V10", "V11", "V12", "V13")]
@@ -216,10 +288,10 @@ data_ht[,repeat_cols][is.na(data_ht[,repeat_cols])] <- 0
 
 
 ######################################################## Color scale Zinc finger
-diff_tmp <-  abs( max( ht_weighted_zf[, zf_cols] ) -  min( ht_weighted_zf[, zf_cols] ) )
-mid <- min( ht_weighted_zf[, zf_cols] ) + diff_tmp/2
+diff_tmp <-  abs( max( data_ht[, zf_cols] ) -  min( data_ht[, zf_cols] ) )
+mid <- min( data_ht[, zf_cols] ) + diff_tmp/2
 
-col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols]), mid, max(ht_weighted_zf[, zf_cols])),
+col_fun_zf <- colorRamp2( c( min(data_ht[, zf_cols]), mid, max(data_ht[, zf_cols])),
                           c( "white", "red", "black" ) )
 
 # col_fun_zf <- colorRamp2( c( 0, 3, 6),
@@ -230,7 +302,7 @@ col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols]), mid, max(ht_weighte
 diff_tmp <-  abs( max( data_ht[, repeat_cols] ) -  min( data_ht[, repeat_cols] ) )
 mid <- min( data_ht[, repeat_cols] ) + diff_tmp/2
 
-col_fun_rep <- colorRamp2( c( min(ht_weighted_zf[, zf_cols]), mid, max(data_ht[, repeat_cols])),
+col_fun_rep <- colorRamp2( c( min(data_ht[, repeat_cols]), mid, max(data_ht[, repeat_cols])),
                           c( "white", "red", "black" ) )
 
 
@@ -275,6 +347,9 @@ my_use_raster <- TRUE
 
 col_fun_usage <-colorRamp2( c( 0, 0.5, 1),c( "white", "grey", "black" ) )
 
+# data_ht[, zf_cols] <- data_ht[, zf_cols] + rnorm(length(data_ht[, zf_cols]), sd = 0.001)
+
+data_ht <- data_ht[ order(data_ht$sum),]
 
 htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ), 
                                    width = unit(4, "cm"),
@@ -326,7 +401,6 @@ htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     border_gp = gpar(col = "black"),
                                     heatmap_legend_param = list(legend_direction = "horizontal"))
 
-
 if ( (opt$computeMatrix != "default_none") ) {
   htm_bw <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, bw_cols] ), 
                                       use_raster = my_use_raster,
@@ -342,7 +416,6 @@ if ( (opt$computeMatrix != "default_none") ) {
                                       border_gp = gpar(col = "black"),
                                       heatmap_legend_param = list(legend_direction = "horizontal"))
 }
-
 
 htm_rep <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, repeat_cols] ), 
                                    width = unit(8, "cm"),
@@ -366,7 +439,7 @@ if (opt$computeMatrix == "default_none") {
 
 
 pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
-     width = 20, height = 15 )
+     width = 22, height = 15 )
 
 draw( all_htm, ht_gap = unit( 0.25, "cm" ), 
       column_title = paste0( opt$title, "\nn = ", nrow(data_ht)),
