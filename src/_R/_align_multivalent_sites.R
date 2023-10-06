@@ -16,19 +16,30 @@ set.seed(1)
 #               default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/align_multivalent_sites/test_aligned_positions.bed",
 #               help="") );
 
-
+# option_list = list(
+#   make_option(c("-a", "--coordinates"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_center100_affimx_position_with_coordinates.txt",
+#               help=""),
+#   
+#   make_option(c("-b", "--weighted_PFM_scores"), type="character",
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_weighted_PFM_scores.txt",
+#               help=""),  
+#   
+#   make_option(c("-c", "--aligned_pos"), type="character", 
+#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_aligned_positions.bed",
+#               help="") );
 
 option_list = list(
   make_option(c("-a", "--coordinates"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_center100_affimx_position_with_coordinates.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/align_multivalent_sites/PRDM13_top_500_center100_affimx_position_with_coordinates.txt",
               help=""),
   
   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/PRDM13_top_500_graphs_weighted_PFM_scores.txt",
               help=""),  
   
   make_option(c("-c", "--aligned_pos"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_aligned_positions.bed",
+              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/align_multivalent_sites/PRDM13_top_500_aligned_positions.bed",
               help="") );
 
 
@@ -76,12 +87,29 @@ rm(pos)
 assignments <- t( apply( merged[2:(nmotifs+1)], 1, function(x) (x==max(x))*1  ) )
 
 
-
-if( sum( apply(assignments,1,sum) != 1 ) > 0 )
-{
-  cat("ERROR: Ambiguous sequence-motif assignment occurred.\n")
-  quit(status=1)
+if( nmotifs == 1 ){
+  
+  aligned_pos_bed <- cbind( merged$chr,
+                            merged$start+abs(merged[,ncol(merged)]) - 1,
+                            merged$start+abs(merged[,ncol(merged)]),
+                            merged$Gene,
+                            merged[,2],
+                            lapply(merged[,ncol(merged)],function(x) if(x>0) return("+") else return("-") ),
+                            paste0("zfs:", range[1], "-", range[2]) )
+  
+  write.table( x = aligned_pos_bed, file = opt$aligned_pos, 
+               sep = "\t", quote = F, col.names = F, row.names = F )
+  
+  cat("Only one ZF subset is use\n")
+  quit(status=0)
+    
+} else{
+  if( sum( apply(assignments,1,sum) != 1 ) > 0 ){
+    cat("ERROR: Ambiguous sequence-motif assignment occurred.\n")
+    quit(status=1)
+    }
 }
+
 
 # get the position for each sequence for the assigned motif (also remove the negative signs)
 pos <- apply( assignments * merged[,(5+nmotifs):ncol(merged)], 1, function(x) abs(sum(x)) )
@@ -104,4 +132,9 @@ write.table(
     lapply(dir,function(x) if(x>0) return("+") else return("-") ),
     apply(assignments,1,function(x) paste0("zfs:",strsplit( strsplit( names(x)[x==1], ":" )[[1]][2], "\\|"  )[[1]][1] ) ) ),
   opt$aligned_pos, sep = "\t", quote = F, col.names = F, row.names = F )
+
+
+
+
+
 
