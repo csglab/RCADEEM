@@ -14,7 +14,7 @@ def RCADEEM( args, log ):
     
     print("Job ID: " + args.JOB_ID )
     print("Input FASTA file for the target protein(s): " + args.ZFP_FA )
-    print("Input FASTA file for the peaks: " + args.CHIP_FA )
+    print("Input BED file for the peaks: " + args.TARGET_BED )
 
 
     ###### Check if input files exists
@@ -24,7 +24,7 @@ def RCADEEM( args, log ):
         print("ERROR: Protein sequence file was not found.")
         exit(2)
 
-    if os.path.isfile( args.CHIP_FA ):
+    if os.path.isfile( args.TARGET_BED ):
         print("Peak sequence file found.")
     else:
         print("ERROR: Peak sequence file not found.")
@@ -45,6 +45,8 @@ def RCADEEM( args, log ):
 
     ####################### define the output path
 
+    input_bed = args.OUT_PREFIX + "input_coordinates.bed"
+
     log_step1 = args.OUT_PREFIX + "log_step1.txt"
     log_step2 = args.OUT_PREFIX + "log_step2.txt"
     report = args.OUT_PREFIX + "report.txt"
@@ -54,18 +56,35 @@ def RCADEEM( args, log ):
     log_info = args.OUT_PREFIX + "log.info.txt"
     log_error = args.OUT_PREFIX + "log.error.txt"
 
+    lbrack = "{"; rbrack = "}"
     
     ####################### prepare the peak sequences                                                                                                
-    # get the central region of the sequences, and also dinucleotide-shuffled sequences                                                               
-    cmdline='%s/fasta-center -len 100 < %s 1> %s ' % \
-        ( args.MEME_DIR, args.CHIP_FA, centered )
-    utils.run_cmd(cmdline, log)
-    
-    cmdline='%s/fasta-dinucleotide-shuffle -f %s -t -dinuc 1> %s ' % \
-        ( args.MEME_DIR, centered, shuffled )
+    # get the central region of the sequences, and also dinucleotide-shuffled sequences
+
+    if args.BED_HAS_SCORE:
+        cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
+        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2),$4 {rbrack}' - |
+        bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
+        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3,$4 {rbrack}' - > {input_bed}"""
+
+    else:
+        cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
+        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2) {rbrack}' - |
+        bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
+        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3 {rbrack}' - > {input_bed}"""
+
     utils.run_cmd(cmdline, log)
 
-    cmdline='cat %s %s > %s' % (centered, shuffled, all)
+    cmdline=f"""bedtools getfasta -fi {args.GENOME_FA} -bed {input_bed} |
+    sed -e 's/c/C/g' - | sed -e 's/g/G/g' - | sed -e 's/a/A/g' - |
+    sed -e 's/t/T/g' - | sed -e 's/n/N/g' - | sed -e 's/Chr/chr/g' - |
+    sed -e 's/CHR/chr/g' - > {centered} """
+    utils.run_cmd(cmdline, log)
+
+    cmdline=f"""{args.MEME_DIR}/fasta-dinucleotide-shuffle -f {centered} -t -dinuc 1> {shuffled} """
+    utils.run_cmd(cmdline, log)
+
+    cmdline=f"""cat {centered} {shuffled} > {all}"""
     utils.run_cmd(cmdline, log)
 
 
@@ -76,38 +95,31 @@ def RCADEEM( args, log ):
     for i in [3, 4, 5, 6, 7, 8]:
 
         # $FASTAtoRF -minl 2 -maxl 8 -span $i -fasta $proteins -out $RF_in.span$i >>$out_folder/log.step1.txt
-        
-        cmdline = '%s/bin/FASTAtoRF -minl 2 -maxl 8 -span %s -fasta %s -out %s.span%s >>%s' % \
-            ( args.script_path, i, args.ZFP_FA, tmp_RF_in, i, log_step1 )
+        cmdline = f"""{args.script_path}/bin/FASTAtoRF -minl 2 -maxl 8 -span {i} -fasta {args.ZFP_FA} -out {tmp_RF_in}.span{i} >>{log_step1}"""
         utils.run_cmd(cmdline, log)
 
         if i == 3:
-            cmdline = 'cat %s.span%s > %s' % \
-                (tmp_RF_in, i, tmp_RF_in)
+            cmdline = f"""cat {tmp_RF_in}.span{i} > {tmp_RF_in}"""
             utils.run_cmd(cmdline, log)
 
         else:
-            cmdline = 'cat %s.span%s | sed 1d >> %s' % \
-                (tmp_RF_in, i, tmp_RF_in)
+            cmdline = f"""cat {tmp_RF_in}.span{i} | sed 1d >> {tmp_RF_in} """
             utils.run_cmd(cmdline, log)
 
 
     ####################### run the RF script, and reformat it for the next step
-    cmdline = 'Rscript %s/src/_R/_predict.RF.R --src_dir %s --predict_in %s --predict_out %s' % \
-        (args.script_path, args.script_path + "/src/_R", tmp_RF_in, tmp_RF_out)
+    cmdline = f"""Rscript {args.script_path}/src/_R/_predict.RF.R --src_dir {args.script_path}/src/_R --predict_in {tmp_RF_in} --predict_out {tmp_RF_out}"""
     utils.run_cmd(cmdline, log)
 
-    cmdline = """sed 's/"//g' %s > %s""" % \
-        (tmp_RF_out, RF_out)
+    cmdline = f"""sed 's/"//g' {tmp_RF_out} > {RF_out}""" 
     utils.run_cmd(cmdline, log)
 
     ####################### run the RCADEEM script
-    cmdline = '%s/bin/RCADEEM -rf %s -fasta %s -out %s -mode 3  >>%s ' % \
-        (args.script_path, RF_out, all, args.OUT_PREFIX, log_step2)
+
+    cmdline = f"""{args.script_path}/bin/RCADEEM -rf {RF_out} -fasta {all} -out {args.OUT_PREFIX} -mode 3  >>{log_step2} """
     utils.run_cmd(cmdline, log)
 
-    cmdline = 'Rscript %s/src/_R/_process_RCADEEM_results.R --prefix %s --results %s  ' % \
-        (args.script_path,  args.OUT_PREFIX, PFM_scores)
+    cmdline = f"""Rscript {args.script_path}/src/_R/_process_RCADEEM_results.R --prefix {args.OUT_PREFIX} --results {PFM_scores}"""
     utils.run_cmd(cmdline, log)
 
 

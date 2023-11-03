@@ -7,7 +7,8 @@ def align_multivalent_sites( args, log ):
     ####### create bed file of actual peaks
     align_dir = args.OUT_DIR + "/align_multivalent_sites"
     if not os.path.exists(align_dir): os.makedirs(align_dir)
-    args.OUT_ALIGN_PREFIX = args.OUT_DIR + "/align_multivalent_sites/" + args.JOB_ID + "_"
+    args.OUT_ALIGN_PREFIX = align_dir + "/" + args.JOB_ID + "_"
+    
 
     lbrack = "{"; rbrack = "}"
     PFM_scores = args.OUT_PREFIX + "PFM_scores.txt"
@@ -25,10 +26,11 @@ def align_multivalent_sites( args, log ):
 
 
     align_pos_centered = args.OUT_ALIGN_PREFIX + "aligned_positions_centered_to_metaPFM.bed"
-    ref_repeats = args.REF_REPEATS  # args.script_path + "/ref/UCSC_table_hg38_track_RepeatMasker_summary_sorted.bed"
     overlapped_repeats = args.OUT_ALIGN_PREFIX + "aligned_positions_overlapping_repeats.bed"
-    computeMatrix_out = args.OUT_ALIGN_PREFIX + "bw_cov_computeMatrix_out.tab.gz"
+    
     bw_flanking_len = 2000
+    input_bed = args.OUT_PREFIX + "input_coordinates.bed"
+    range = 200
 
 
     cmdline = f"""cat {PFM_scores} | 
@@ -54,7 +56,7 @@ def align_multivalent_sites( args, log ):
     utils.run_cmd(cmdline, log)
 
     cmdline = f"""cat {args.CHR_SIZES} {align_pos} | 
-    awk -v FS="\\t" -v OFS="\\t" -v range={args.RANGE} 'NF==2 {lbrack} size[$1]=$2; {rbrack} NF>2 {lbrack} $2 -= range; $3 += range; if ($2>=0 && $3<=size[$1] ) print $0; {rbrack}' | 
+    awk -v FS="\\t" -v OFS="\\t" -v range={range} 'NF==2 {lbrack} size[$1]=$2; {rbrack} NF>2 {lbrack} $2 -= range; $3 += range; if ($2>=0 && $3<=size[$1] ) print $0; {rbrack}' | 
     bedtools getfasta -name -s -tab -fi {args.GENOME_FA} -bed - | 
     awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,toupper($2) {rbrack}' - > {align_fa}"""
     utils.run_cmd(cmdline, log)
@@ -82,10 +84,27 @@ def align_multivalent_sites( args, log ):
 
     #### Get Coverage over BW +/- 2k around centered (on the meta PFM) aligned positions
     if (args.BW_FILE == "default_none"):
-        computeMatrix_out = "default_none"
+        computeMatrix_files_string = "default_none"
+    
     else:
-        cmdline = f"""computeMatrix reference-point --referencePoint center --downstream {bw_flanking_len} --upstream {bw_flanking_len} --regionsFileName {align_pos_centered} --scoreFileName {args.BW_FILE} --outFileName {computeMatrix_out} --binSize 100 --sortRegions keep --averageTypeBins mean --numberOfProcessors 1"""
-        utils.run_cmd(cmdline, log)
+
+        bw_file_list = args.BW_FILE.split(',') 
+        computeMatrix_out_files = []
+
+        for bw_file in bw_file_list:
+
+
+            this_computeMatrix_name = args.OUT_ALIGN_PREFIX + os.path.basename(bw_file).replace(".bw", "").replace(".bigwig", "") + "_bw_cov_computeMatrix_out.tab.gz" 
+            computeMatrix_out_files.append( this_computeMatrix_name )
+
+            cmdline = f"""computeMatrix reference-point --referencePoint center --downstream {bw_flanking_len} --upstream {bw_flanking_len} --regionsFileName {align_pos_centered} --scoreFileName {bw_file} --outFileName {this_computeMatrix_name} --binSize 100 --sortRegions keep --averageTypeBins mean --numberOfProcessors 1"""
+            utils.run_cmd(cmdline, log)
+        
+        computeMatrix_files_string = ','.join( computeMatrix_out_files )
+
+
+
+
 
     #### Get overlapping repeats
     cmdline = f"""sort -k1,1 -k2,2n {align_pos} |
@@ -95,7 +114,7 @@ def align_multivalent_sites( args, log ):
 
 
     #### Create aligned heatmaps
-    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_prefix {args.OUT_ALIGN_PREFIX} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID} --computeMatrix {computeMatrix_out} --repeats_info {overlapped_repeats} """
+    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_dir {align_dir} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID} --computeMatrix {computeMatrix_files_string} --repeats_info {overlapped_repeats} --meta_pfm_len {meta_PFM_len} --experiment_name {args.JOB_ID} --bw_labels {args.BW_LABELS} --bw_units {args.BW_UNITS} --input_bed {input_bed} --aligned_bed {align_pos}"""
     utils.run_cmd(cmdline, log)
 
 

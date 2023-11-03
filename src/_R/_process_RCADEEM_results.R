@@ -45,10 +45,10 @@ nnlogistic <- function( X, Y )
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--results"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/test1_.PFM.scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/CTCF_top_200_PFM_scores.txt",
               help=""),
   make_option(c("-b", "--prefix"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/test1_", help="") );
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/CTCF_top_200_", help="") );
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser); rm(option_list, opt_parser)
@@ -95,6 +95,7 @@ if( nmotifs > 1 )
 
 cat("Performing non-negative logistic regression for distinguishing positive from negative sequences ...\n")
 # Perform non-negative logistic regression to create a predictor of DNA-binding
+
 coefs <- nnlogistic( as.matrix( hmm_scores[,3:ncolumns,with=F] ), hmm_scores$Status )
 write.table( coefs, paste0(opt$prefix, "logistic_regression_coefficients.txt"), sep="\t", quote=F, col.names = F )
 

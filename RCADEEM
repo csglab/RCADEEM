@@ -30,7 +30,7 @@ parser.add_argument("--C2H2_ZFP_fasta", dest="ZFP_FA", action="store",
                     default="default_none",
                     help="")
 
-parser.add_argument("--ChIP_seq_fasta", dest="CHIP_FA", action="store",
+parser.add_argument("--target_bed", dest="TARGET_BED", action="store",
                     default="default_none",
                     help="")
 
@@ -42,10 +42,6 @@ parser.add_argument("--chr_sizes", dest="CHR_SIZES", action="store",
                     default="default_none",
                     help="")
 
-parser.add_argument("--range", dest="RANGE", action="store",
-                    default="100",
-                    help="")
-
 parser.add_argument("--cutoff", dest="CUTOFF", action="store",
                     default="0.2",
                     help="")
@@ -55,12 +51,27 @@ parser.add_argument("--minsize", dest="MINSIZE", action="store",
                     help="")
 
 parser.add_argument("--bw", dest="BW_FILE", action="store",
-                    default="default_none",
+                    default="default_none", type=str,
+                    help="")
+
+parser.add_argument("--bw_labels", dest="BW_LABELS", action="store",
+                    default="default_none", type=str,
+                    help="")
+
+parser.add_argument("--bw_units", dest="BW_UNITS", action="store",
+                    default="default_none", type=str,
                     help="")
 
 parser.add_argument("--ref_repeats", dest="REF_REPEATS", action="store",
                     default="default_none",
                     help="")
+
+parser.add_argument("--rcadeem_range", dest="RC_RANGE", action="store",
+                    default="100", type = str,
+                    help="")
+
+parser.add_argument("--bed_has_score", dest="BED_HAS_SCORE", action="store_true",
+                    help="the fourth column in the input bed files is a numeric score that will be shown in the aligned heatmap")
 
 
 args = parser.parse_args()
