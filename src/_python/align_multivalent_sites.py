@@ -11,7 +11,6 @@ def align_multivalent_sites( args, log ):
     
 
     lbrack = "{"; rbrack = "}"
-    PFM_scores = args.OUT_PREFIX + "PFM_scores.txt"
     center_bed = args.OUT_ALIGN_PREFIX + "center100.bed" 
     center_fa = args.OUT_ALIGN_PREFIX + "center100.fasta"
     OPT_PFM = args.OUT_PREFIX + "opt_PFM.txt"
@@ -30,12 +29,11 @@ def align_multivalent_sites( args, log ):
     
     bw_flanking_len = 2000
     input_bed = args.OUT_PREFIX + "input_coordinates.bed"
-    range = 200
+    affimx_range = 100
 
-
-    cmdline = f"""cat {PFM_scores} | 
-    awk 'NR>1 && $2==1 {lbrack} split($1,a,":"); split(a[2],b,"-"); 
-    printf("%s\\t%s\\t%s\\t%s\\t.\\n",a[1],b[1]+200,b[1]+200+100,$1); {rbrack}' | sed -e 's/CHR/chr/g' - > {center_bed} """    
+    cmdline=f"""awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int( ($2+($3-$2)/2) ), int( ($2+($3-$2)/2) ),$4,"." {rbrack}' {input_bed} |
+    sed -e 's/CHR/chr/g' - |
+    bedtools slop -b {affimx_range} -g {args.CHR_SIZES} -i - > {center_bed} """
     utils.run_cmd(cmdline, log)
 
     ####### create fasta file of actual peaks
@@ -56,7 +54,7 @@ def align_multivalent_sites( args, log ):
     utils.run_cmd(cmdline, log)
 
     cmdline = f"""cat {args.CHR_SIZES} {align_pos} | 
-    awk -v FS="\\t" -v OFS="\\t" -v range={range} 'NF==2 {lbrack} size[$1]=$2; {rbrack} NF>2 {lbrack} $2 -= range; $3 += range; if ($2>=0 && $3<=size[$1] ) print $0; {rbrack}' | 
+    awk -v FS="\\t" -v OFS="\\t" -v range=200 'NF==2 {lbrack} size[$1]=$2; {rbrack} NF>2 {lbrack} $2 -= range; $3 += range; if ($2>=0 && $3<=size[$1] ) print $0; {rbrack}' | 
     bedtools getfasta -name -s -tab -fi {args.GENOME_FA} -bed - | 
     awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,toupper($2) {rbrack}' - > {align_fa}"""
     utils.run_cmd(cmdline, log)

@@ -34,6 +34,10 @@ parser.add_argument("--target_bed", dest="TARGET_BED", action="store",
                     default="default_none",
                     help="")
 
+parser.add_argument("--target_fasta", dest="TARGET_FASTA", action="store",
+                    default="default_none",
+                    help="")
+
 parser.add_argument("--genome_fasta", dest="GENOME_FA", action="store",
                     default="default_none",
                     help="")

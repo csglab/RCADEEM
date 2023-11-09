@@ -24,10 +24,14 @@ def RCADEEM( args, log ):
         print("ERROR: Protein sequence file was not found.")
         exit(2)
 
-    if os.path.isfile( args.TARGET_BED ):
-        print("Peak sequence file found.")
-    else:
-        print("ERROR: Peak sequence file not found.")
+
+
+    if (args.TARGET_BED == "default_none" and args.TARGET_FASTA == "default_none"):
+        print("Neither target bed or fasta sequence file specified (--target_bed or --target_fasta).")
+        exit(2)
+
+    if (args.TARGET_BED != "default_none" and args.TARGET_FASTA != "default_none"):
+        print("Both target bed and fasta sequence file were specified, only use one (--target_bed or --target_bed).")
         exit(2)
 
 
@@ -57,29 +61,49 @@ def RCADEEM( args, log ):
     log_error = args.OUT_PREFIX + "log.error.txt"
 
     lbrack = "{"; rbrack = "}"
-    
-    ####################### prepare the peak sequences                                                                                                
-    # get the central region of the sequences, and also dinucleotide-shuffled sequences
 
-    if args.BED_HAS_SCORE:
-        cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
-        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2),$4 {rbrack}' - |
-        bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
-        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3,$4 {rbrack}' - > {input_bed}"""
+
+    if os.path.isfile( args.TARGET_BED ):
+
+        print("Peak sequence file found.")
+
+
+        ####################### prepare the peak sequences                                                                                                
+        # get the central region of the sequences, and also dinucleotide-shuffled sequences
+        if args.BED_HAS_SCORE:
+            cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
+            awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2),$4 {rbrack}' - |
+            bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
+            awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3,$4 {rbrack}' - > {input_bed}"""
+
+        else:
+            cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
+            awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2) {rbrack}' - |
+            bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
+            awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3 {rbrack}' - > {input_bed}"""
+
+        utils.run_cmd(cmdline, log)
+
+
+        cmdline=f"""bedtools getfasta -fi {args.GENOME_FA} -bed {input_bed} |
+        sed -e 's/c/C/g' - | sed -e 's/g/G/g' - | sed -e 's/a/A/g' - |
+        sed -e 's/t/T/g' - | sed -e 's/n/N/g' - | sed -e 's/Chr/chr/g' - |
+        sed -e 's/CHR/chr/g' - > {centered} """
+        utils.run_cmd(cmdline, log)
+
+    elif os.path.isfile( args.TARGET_FASTA ):
+
+        args.RC_RANGE = int(args.RC_RANGE) * 2
+
+        # get the central region of the sequences
+        cmdline=f"""{args.MEME_DIR}/fasta-center -protein -len {args.RC_RANGE} < {args.TARGET_FASTA} 1> {centered} """
+        utils.run_cmd(cmdline, log)
 
     else:
-        cmdline=f"""sort -k 1,1 -k2,2n {args.TARGET_BED} |
-        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1, int($2+($3-$2)/2), int($2+($3-$2)/2) {rbrack}' - |
-        bedtools slop -b {args.RC_RANGE} -g {args.CHR_SIZES} -i - |
-        awk -v FS="\\t" -v OFS="\\t" '{lbrack} print $1,$2,$3,$1":"$2"-"$3 {rbrack}' - > {input_bed}"""
+        print("ERROR: Neither peak bed or fasta sequence files were found.")
+        exit(2)
 
-    utils.run_cmd(cmdline, log)
 
-    cmdline=f"""bedtools getfasta -fi {args.GENOME_FA} -bed {input_bed} |
-    sed -e 's/c/C/g' - | sed -e 's/g/G/g' - | sed -e 's/a/A/g' - |
-    sed -e 's/t/T/g' - | sed -e 's/n/N/g' - | sed -e 's/Chr/chr/g' - |
-    sed -e 's/CHR/chr/g' - > {centered} """
-    utils.run_cmd(cmdline, log)
 
     cmdline=f"""{args.MEME_DIR}/fasta-dinucleotide-shuffle -f {centered} -t -dinuc 1> {shuffled} """
     utils.run_cmd(cmdline, log)
