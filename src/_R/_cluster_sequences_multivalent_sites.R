@@ -1,3 +1,4 @@
+library(stringdist)
 library(stringr) 
 library(assertr)
 library(matrixStats)
@@ -30,6 +31,42 @@ hamming_dist <- function(x, y){
   sum(x != y)
   }
 
+
+get_seq_col_split <- function( seq_cols, nzfs, bin_length, spamming = "motif" ){
+  # bin_length <- 10
+  ref_chars <- c("b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n",
+                 "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "aa", "ab",
+                 "ac", "ad", "ae", "af", "ag", "ah", "ai", "aj", "ak", "al")
+  
+  motif_length <- as.numeric( as.numeric(nzfs)*3 )
+  num_bins <- as.numeric( motif_length / bin_length )
+
+  
+  if (spamming == "motif"){
+    seq_bins_main <- sort( rep_len( x = ref_chars[ 1: floor( num_bins ) ],
+                                   length.out = floor( num_bins )*bin_length ) )
+  
+    seq_bins_extra_len <- as.integer( motif_length - length(seq_bins_main) )
+    
+    seq_bins_extra <- rep_len(x = "y", length.out =  seq_bins_extra_len )
+    
+    col_split <- c( rep_len(x = "a", length.out = 20), 
+                    seq_bins_main,
+                    seq_bins_extra,
+                    rep_len(x = "z", length.out = 21) )
+    
+  }
+  # ifelse( spamming == "whole"){
+  #   pass
+  # }
+  if(length(seq_cols) != length( col_split  ) ){
+    cat("ERROR: num. of sequence column should be the same as num. col_split")
+    q()
+  }  
+  return(col_split)
+}
+
+
 plot_averageogram <- function( data, label, units, filename ){
   
   # data <- this_cluster_data[, bw_col]
@@ -55,7 +92,7 @@ plot_averageogram <- function( data, label, units, filename ){
 option_list = list(
 
   make_option(c("-a", "--out_dir"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -67,52 +104,55 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/CTCF_top_200_graphs_weighted_PFM_scores.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/CTCF_top_200_graphs_ZF_binding_scores.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
               help=""),
 
   make_option(c("-f", "--align_num"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites/CTCF_top_200_aligned_sequences_numeric_mx.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
               help=""),
 
   make_option(c("-g", "--title"), type="character",
-              default="CTCF_top_200",
+              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites/CTCF_top_200_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz,/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites/CTCF_top_200_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz",
+              default="default_none",
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites/CTCF_top_200_aligned_positions_overlapping_repeats.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
               help=""),
     make_option(c("-k", "--experiment_name"), type="character",
-              default="CTCF_top_200",
+              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
-              default="ChIP_seq_rep1,Mark2_rep2",
+              default="default_none",
               help=""),
   
     make_option(c("-m", "--bw_units"), type="character",
-              default="ChIP_reads,Mark2_reads",
+              default="default_none",
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/CTCF_top_200_input_coordinates.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
               help=""),
   
   make_option(c("-o", "--meta_pfm_len"), type="character",
-              default="30",
+              default="33",
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_200/align_multivalent_sites/CTCF_top_200_aligned_positions.bed",
-              help="")
-  
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions.bed",
+              help=""),
+
+  make_option(c("-q", "--footprint_tab"), type="character",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_50_repeats_TRUE/align_multivalent_sites/CTCF_top_2000_RC_range_50_repeats_TRUE_aligned_positions_footprint.tab",
+              help="")    
   );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -134,6 +174,11 @@ nzfs <- as.integer(opt$meta_pfm_len)/3
 #####
 
 
+
+# tmp_bw_cov <- as.data.frame(fread( file = opt$footprint_tab, skip = 1, sep = "\t" ))
+
+
+
 ############################################################# Read Sequence ####
 # read the sequence
 cat("Reading the sequence information ...\n")
@@ -146,7 +191,8 @@ seq <- seq[ apply(seq[,3:ncol(seq)], 1, function(x) sum(x==-1) ) == 0, ]
 # Zoom into the -20 +20 region around the metaPFM hit
 ht_seq <- seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)]
 
-seq_cols <- paste0( "seq_", (-20):(nzfs*3+20) )
+# seq_cols <- paste0( "seq_", (-20):(nzfs*3+20) )
+seq_cols <- paste0( (-20):(nzfs*3+20) )
 colnames(ht_seq) <- seq_cols
 ht_seq$Gene <- seq$Gene
 
@@ -218,7 +264,8 @@ col_fun_usage <-colorRamp2( c( 0, 0.5, 1),c( "white", "grey", "black" ) )
 diff_tmp <-  abs( max( ht_weighted_zf[, zf_cols] ) -  min( ht_weighted_zf[, zf_cols] ) )
 mid <- min( ht_weighted_zf[, zf_cols] ) + diff_tmp/2
 
-col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols])-1e-6, mid, max(ht_weighted_zf[, zf_cols])+1e-6),
+col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols])-1e-6, mid, 
+                             max(ht_weighted_zf[, zf_cols])+1e-6),
                           c( "white", "red", "black" ) )
 
 # col_fun_zf <- colorRamp2( c( 0, 3, 6),
@@ -241,6 +288,14 @@ aligned_bed <- aligned_bed[, c("V2", "V4", "V7")]
 colnames(aligned_bed) <- c("coord_meta", "Gene", "cluster")
 aligned_bed$cluster <- gsub("-", "_", aligned_bed$cluster)
 
+tmp <- gsub("zfs:", "", aligned_bed$cluster )
+tmp <- as.data.frame( str_split_fixed(string = tmp, pattern = "_", n = 2) )
+aligned_bed$first_ZF <- as.numeric( tmp$V1 )
+aligned_bed$second_ZF <- as.numeric( tmp$V2 )
+
+aligned_bed$coord_meta <- aligned_bed$coord_meta + ( as.integer(opt$meta_pfm_len)/2)
+
+
 
 original_bed <- as.data.frame(fread( opt$input_bed, sep = "\t", data.table = T, header = F ))
 
@@ -252,7 +307,7 @@ if( ncol(original_bed) == 5) {
     colnames(original_bed) <- c("chr", "start", "stop", "Gene") }
 
 
-### Calculate the distance between the metaPFM hit and the original summit
+### Calculate the distance between the center of the metaPFM hit and the original summit
 original_bed$coord_summit <- original_bed$start + (original_bed$stop - original_bed$start)/2
 original_bed <- original_bed[ , !colnames(original_bed) %in% c("chr","start", "stop")]
 
@@ -260,8 +315,9 @@ summit_dist <- merge(x=original_bed, y = aligned_bed, by = "Gene", all = TRUE)
 summit_dist$summit_dist <- summit_dist$coord_meta - summit_dist$coord_summit
 
 
-## Just for development
-# summit_dist$summit_dist <- as.integer(summit_dist$summit_dist/10)
+
+
+
 
 
 data_ht <- merge(x=data_ht, y = summit_dist, by = "Gene", all.x = TRUE)
@@ -315,20 +371,35 @@ repeats <- cast(repeats[,c("Gene", "repClass", "state")],
                Gene ~ repClass, value = "state", fun.aggregate=length)
 
 repeat_cols <- colnames(repeats)[-1]
+length(repeat_cols)
+
+if( length(repeat_cols) == 1 ){
+  
+  if( repeat_cols == "No_repeats"){
+    
+    repeats$Repeats <- 0
+    repeat_cols <- c("No_repeats", "Repeats")
+    rep_ht_width <- 2
+
+  }else{ rep_ht_width <- 8 }
+}
 
 data_ht <- merge(x = data_ht, y = repeats, by = "Gene", all.x = TRUE )
 data_ht[,repeat_cols][is.na(data_ht[,repeat_cols])] <- 0
+
 
 
 #### Color scale repetitive regions
 diff_tmp <-  abs( max( data_ht[, repeat_cols] ) -  min( data_ht[, repeat_cols] ) )
 mid <- min( data_ht[, repeat_cols] ) + diff_tmp/2
 
-col_fun_rep <- colorRamp2( c( min(data_ht[, repeat_cols]), mid, max(data_ht[, repeat_cols])),
-                          c( "white", "red", "black" ) )
+col_fun_rep <- colorRamp2( c( min(data_ht[, repeat_cols]), mid, 
+                              max(data_ht[, repeat_cols])),
+                           c( "white", "red", "black" ) )
 
 
 rm(dummy_repeats, repeats, already_in_repeats, diff_tmp, mid)
+
 #####
 
 
@@ -365,8 +436,8 @@ if ( (opt$computeMatrix != "default_none") ) {
     mid <- min( tmp_bw_cov[, tmp_bw_cols] ) + diff_tmp/2
     
     
-    tmp_col_fun_bw <- colorRamp2( c( min( tmp_bw_cov[, tmp_bw_cols] ), mid, 
-                                     max( tmp_bw_cov[, tmp_bw_cols] ) ),
+    tmp_col_fun_bw <- colorRamp2( c( min( tmp_bw_cov[, tmp_bw_cols] )-1e-6, mid, 
+                                     max( tmp_bw_cov[, tmp_bw_cols] )+1e-6 ),
                                   c( "white", "red", "black" ) )
     
     
@@ -390,8 +461,68 @@ if ( (opt$computeMatrix != "default_none") ) {
 
 
 ############################################################### Clustering #####
+rownames(data_ht) <- data_ht$Gene
 data_ht$sum <- rowSums(data_ht[,zf_cols])
-data_ht <- data_ht[ order(data_ht$sum),]
+data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
+
+
+data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
+data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+
+max_ZF <- max( as.integer( data_ht$second_ZF ) )
+
+row_order <- vector()
+cat("Finding clusters per ZF array ... \n")
+for( cluster in unique(data_ht$cluster)){
+  
+  cat(cluster)
+  cat("\n")
+  # cluster <- "zfs:1_6"
+  
+  first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
+  second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
+  
+  # first_ZF
+  # second_ZF
+  
+  ## https://stackoverflow.com/questions/35540059/how-to-insert-a-distance-matrix-into-r-and-run-hierarchical-clustering
+  
+  start_pos <- ( 3*(max_ZF-second_ZF) )
+  end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
+  
+  this_seq_cols <- as.character( start_pos:end_pos )
+  
+  ## Clustering using all the positions in the metaPFM hit
+  # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ 21:( 20 + 3*nzfs ) ] ]
+  
+  ## Clustering with the positions that are recognized with the ZF array
+  this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
+  
+  if( nrow(this_seq) >= 2 ){
+  
+    ## Concatenate base columns into a sequence vector
+    complete_seqs <- apply(this_seq, 1, function(x) paste(x, collapse = ""))
+    names( complete_seqs ) <- rownames(this_seq)
+    
+    ## Calc. sequence distance matrix
+    dist_seq <- stringdistmatrix( a = complete_seqs, b = complete_seqs, 
+                                  method = "osa", useBytes = FALSE,
+                                  nthread = 1 ) # lv lcs
+    rownames(dist_seq) <- rownames(this_seq)
+    
+    ## Convert to a distance object
+    dist_seq <- as.dist(m = dist_seq, diag = TRUE, upper = TRUE)
+    ## Clustering
+    hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
+    
+    row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
+  }
+  else{ row_order <- c( row_order, rownames( this_seq ) ) }
+}
+
+## Reorder by new clustering
+data_ht <- data_ht[ row_order, ]
+
 
 #####
 
@@ -405,7 +536,7 @@ zf_annotations <- c( rep_len( x = NA,length.out = 20),
 anno_zf_col_fun = colorRamp2(c(1, nzfs), c("grey", "black"))
 
 zf1_column_ha <- HeatmapAnnotation(ZFs = zf_annotations, col = list(ZFs = anno_zf_col_fun), 
-                               na_col = "white" )
+                                   na_col = "white" )
 
 zf2_annotations <- 1:nzfs
 
@@ -429,16 +560,25 @@ if (has_score) {
 
 
 
-######################################### Distance from summit to motif  #######
+######################################### Distance from summit to motif annotation  #######
+# summit_annotation <- rowAnnotation(
+#   width = unit(5, "cm"),
+#   distance_to_motif = anno_lines( cbind( data_ht$summit_dist, 
+#                                          rep.int(x=0, times = nrow(data_ht)),
+#                                          rep.int(x=3*nzfs, times = nrow(data_ht)) 
+#                                          ),
+#                                   border = TRUE,
+#                                   ylim = c( -200, (200+3*nzfs) ),
+#                                   axis_param = list( direction = "normal") ) )
+
 summit_annotation <- rowAnnotation(
   width = unit(5, "cm"),
-  distance_to_motif = anno_lines( cbind( data_ht$summit_dist, 
-                                         rep.int(x=0, times = nrow(data_ht)),
-                                         rep.int(x=3*nzfs, times = nrow(data_ht)) 
-                                         ),
+  GHT_summit = anno_lines( cbind( data_ht$summit_dist, rep.int(x=0, times = nrow(data_ht)) ),
                                   border = TRUE,
-                                  ylim = c( -200, (200+3*nzfs) ),
+                                  ylim = c( -200, 200 ),
                                   axis_param = list( direction = "normal") ) )
+
+
     
     
 # ha = HeatmapAnnotation(foo = anno_lines(cbind(c(1:5, 1:5), c(5:1, 5:1)), 
@@ -450,6 +590,7 @@ summit_annotation <- rowAnnotation(
 #####
 
 
+
 ########################################################## Draw heatmaps #######
 my_use_raster <- TRUE
 
@@ -459,7 +600,7 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    use_raster = my_use_raster,
                                    raster_quality = 2,
                                    cluster_columns = FALSE,
-                                   cluster_rows = TRUE,
+                                   cluster_rows = FALSE,
                                    row_dend_reorder = TRUE,
                                    clustering_distance_rows = hamming_dist,
                                    show_column_names =  TRUE,
@@ -472,29 +613,33 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
 
 htm_usage <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, "utilization_proportion"] ), 
                                       width = unit(0.5, "cm"),
-                                   use_raster = my_use_raster,
-                                   raster_quality = 2,
-                                   cluster_columns = FALSE,
-                                   cluster_rows = FALSE,
-                                   row_dend_reorder = TRUE,
-                                   # clustering_distance_rows = hamming_dist,
-                                   show_column_names =  TRUE,
-                                   show_row_names  =  FALSE,
-                                   col = col_fun_usage,
-                                   name = "1.utilization_proportion",
-                                   column_title = "1",
-                                   # rect_gp = gpar(col = "grey", lwd = 1),
-                                   border_gp = gpar(col = "black"),
-                                   heatmap_legend_param = list(legend_direction = "horizontal") )
+                                      use_raster = my_use_raster,
+                                      raster_quality = 2,
+                                      cluster_columns = FALSE,
+                                      cluster_rows = FALSE,
+                                      row_dend_reorder = TRUE,
+                                      show_column_names =  TRUE,
+                                      show_row_names  =  FALSE,
+                                      col = col_fun_usage,
+                                      name = "1.utilization_proportion",
+                                      column_title = "1",
+                                      # rect_gp = gpar(col = "grey", lwd = 1),
+                                      border_gp = gpar(col = "black"),
+                                      heatmap_legend_param = list(legend_direction = "horizontal") )
 
-htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ), 
+
+
+col_split <- get_seq_col_split( seq_cols, nzfs, bin_length = 10 )
+
+htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
+                                    column_split = col_split,
                                     width = unit(27, "cm"),
                                     top_annotation = zf1_column_ha,
                                     use_raster = my_use_raster,
                                     raster_quality = 2,
                                     cluster_columns = FALSE, 
                                     cluster_rows = FALSE,
-                                    show_column_names = FALSE,
+                                    show_column_names = TRUE,
                                     show_row_names  =  FALSE,
                                     col = colors_bases,
                                     name = "Sequence",
@@ -509,7 +654,6 @@ if ( (opt$computeMatrix != "default_none") ) {
   
   for ( i in 1:length(list_of_col_fun) ) {
     # i <- 1 
-    
     list_bw_htm[[i]] <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, list_of_cols[[i]] ] ), 
                                       use_raster = my_use_raster,
                                       width = unit(5, "cm"),
@@ -523,16 +667,14 @@ if ( (opt$computeMatrix != "default_none") ) {
                                       column_title = bigwig_labels[[i]],
                                       border_gp = gpar(col = "black"),
                                       heatmap_legend_param = list(legend_direction = "horizontal"))
-  
     }
   
   sum_bw_htms <- Reduce( "+", list_bw_htm )
-  
   rm(list_bw_htm)
 }
 
 htm_rep <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, repeat_cols] ), 
-                                    width = unit(8, "cm"),
+                                    width = unit(rep_ht_width, "cm"),
                                     use_raster = my_use_raster,
                                     raster_quality = 2,
                                     cluster_columns = FALSE, 
@@ -544,7 +686,6 @@ htm_rep <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, repeat_cols] ),
                                     column_title = "RepeatClass",
                                     border_gp = gpar(col = "black"),
                                     heatmap_legend_param = list(legend_direction = "horizontal"))
-
 
 
 if (opt$computeMatrix == "default_none") {
@@ -561,9 +702,6 @@ if (has_score) {
 }
 
 
-
-
-
 pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
      width = 22 + bw_add_width, height = 15 )
 
@@ -573,7 +711,6 @@ drawned_all_htm <- draw( all_htm, ht_gap = unit( 0.25, "cm" ),
                          heatmap_legend_side = "right", annotation_legend_side = "right" )
 
 dev.off()
-
 
 write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ), 
              x = data_ht, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE )
@@ -704,16 +841,38 @@ if (nmotifs > 1) {
   
   jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
        width=1000,height=1000)
-  dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), hclustfun = function(x) hclust(x,method =  "mcquitty"), distfun = function(x) distmx, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 3, length.out=256),col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), labRow = F, xlab = "Position", ylab = "Peaks", key.title = "", key.xlab = "Nucleotides", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), 
+                           hclustfun = function(x) hclust(x,method =  "mcquitty"), 
+                           distfun = function(x) distmx, margins=c(4,2), 
+                           Colv = F, 
+                           dendrogram = "row", trace="none", key=T, 
+                           breaks=seq(0, 3, length.out=256),
+                           col=colorRampPalette( c(rgb(0,0.8,0),rgb(0,0,0.8),rgb(1,0.7,0),rgb(0.8,0,0)) ) (255), 
+                           labRow = F, xlab = "Position", ylab = "Peaks", 
+                           key.title = "", key.xlab = "Nucleotides", key.ylab = "", 
+                           density.info="none", lhei = c(0.3,2) )
   dev.off()
   
   jpeg(file=paste0(opt$out_prefix,"clustered.zf_heatmap.jpg"),
        width=1000,height=1000)
-  heatmap.2( x = as.matrix( weighted_zf[,3:(2+nzfs)] ), Rowv=dendrogram$rowDendrogram, margins=c(4,2), Colv = F, dendrogram = "row", trace="none", key=T, breaks=seq(0, 6, length.out=256),col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", key.xlab = "Binding score", key.ylab = "", density.info="none", lhei = c(0.3,2) )
+  heatmap.2( x = as.matrix( weighted_zf[,3:(2+nzfs)] ), 
+             Rowv=dendrogram$rowDendrogram, 
+             margins=c(4,2), Colv = F, 
+             dendrogram = "row", trace="none", key=T, 
+             breaks=seq(0, 6, length.out=256),
+             col=colorRampPalette( c(rgb(0.95,0.95,0.95),"yellow", "orange", "red","dark red"))(255), 
+             labRow = F, xlab = "Zinc finger", ylab = "Peaks", key.title = "", 
+             key.xlab = "Binding score", key.ylab = "", density.info="none", 
+             lhei = c(0.3,2) )
   dev.off()
   
-  write.table(seq$Gene[rev(dendrogram$rowInd)],paste0(opt$out_prefix,"clustered.gene_order.txt"), col.names = F, row.names = F, quote=F, sep="\t")
-  write.table(binary_hmm[rev(dendrogram$rowInd),],paste0(opt$out_prefix,"clustered.motif_assignment.txt"), row.names = F, quote=F, sep="\t")
+  write.table(seq$Gene[rev(dendrogram$rowInd)], 
+              paste0(opt$out_prefix,"clustered.gene_order.txt"), 
+              col.names = F, row.names = F, quote=F, sep="\t")
+  
+  write.table(binary_hmm[rev(dendrogram$rowInd),], 
+              paste0(opt$out_prefix,"clustered.motif_assignment.txt"), 
+              row.names = F, quote=F, sep="\t")
 }
 #####
 

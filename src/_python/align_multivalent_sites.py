@@ -91,7 +91,6 @@ def align_multivalent_sites( args, log ):
 
         for bw_file in bw_file_list:
 
-
             this_computeMatrix_name = args.OUT_ALIGN_PREFIX + os.path.basename(bw_file).replace(".bw", "").replace(".bigwig", "") + "_bw_cov_computeMatrix_out.tab.gz" 
             computeMatrix_out_files.append( this_computeMatrix_name )
 
@@ -99,9 +98,6 @@ def align_multivalent_sites( args, log ):
             utils.run_cmd(cmdline, log)
         
         computeMatrix_files_string = ','.join( computeMatrix_out_files )
-
-
-
 
 
     #### Get overlapping repeats
