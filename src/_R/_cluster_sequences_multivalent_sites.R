@@ -322,17 +322,17 @@ data_ht <- merge(x=data_ht, y = summit_dist, by = "Gene", all.x = TRUE)
 
 
 ### Create a color scale if there is a summit score
-if (has_score) {
-  diff_tmp <-  abs( max( data_ht[, "score"] ) -  min( data_ht[, "score"] ) )
-  mid <- min( data_ht[, "score"] ) + diff_tmp/2
-  
-  col_fun_score <- colorRamp2( c( min(data_ht[, "score"])-1e-6, 
-                                  mid, 
-                                  max(data_ht[, "score"])+1e-6),
-                               c( "white", "red", "black" ) )
-  
-  rm(mid, diff_tmp)
-}
+# if (has_score) {
+#   diff_tmp <-  abs( max( data_ht[, "score"] ) -  min( data_ht[, "score"] ) )
+#   mid <- min( data_ht[, "score"] ) + diff_tmp/2
+#   
+#   col_fun_score <- colorRamp2( c( min(data_ht[, "score"])-1e-6, 
+#                                   mid, 
+#                                   max(data_ht[, "score"])+1e-6),
+#                                c( "white", "red", "black" ) )
+#   
+#   rm(mid, diff_tmp)
+# }
 
 rm(summit_dist, original_bed, aligned_bed)
 #####
@@ -351,13 +351,31 @@ if( opt$footprint_tab != "default_none" ){
   
   foot_counts <- foot_counts[, 1:(num_cols+1) ]
   
-  footprint_cols <- paste0( "footprints_", 1:( num_cols ) ) 
+  footprint_cols <- paste0( "footprints_", 1:( num_cols ) )
   
   colnames(foot_counts) <- c("Gene", footprint_cols )
   
-  col_fun_foot <- colorRamp2( c( 0, 30, 60), c( "white", "red", "black" ) )
   
-  anno_zf_col_fun = colorRamp2(c(1, nzfs), c("grey", "black"))
+  
+  
+  
+  diff_tmp <-  abs( max( foot_counts[, footprint_cols] ) -  min( foot_counts[, footprint_cols] ) )
+  mid <- min( foot_counts[, footprint_cols] ) + diff_tmp/2
+  
+  col_fun_foot <- colorRamp2( c( min(foot_counts[, footprint_cols])-1e-6, 
+                                  mid, 
+                                  max(foot_counts[, footprint_cols])+1e-6),
+                               c( "white", "red", "black" ) )
+  
+  rm(mid, diff_tmp)
+  
+  # col_fun_foot <- colorRamp2( c( 0, 30, 60), c( "white", "red", "black" ) )
+  
+  
+  
+  
+  
+  anno_zf_col_fun = colorRamp2( c(1, nzfs), c( "grey", "black" ) )
   
   zf_annotations <- c( rep_len( x = NA,length.out = 100),
                        sort(rep_len( x = 1:nzfs, length.out = 3*nzfs), decreasing = TRUE),
