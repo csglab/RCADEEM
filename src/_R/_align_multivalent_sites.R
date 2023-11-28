@@ -3,49 +3,22 @@ library(optparse)
 set.seed(1)
 
 ########################################################   IN and load data ####
-# option_list = list(
-#   make_option(c("-a", "--coordinates"), type="character",
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/align_multivalent_sites/test_center100.affimx.position.with_coordinates.txt",
-#               help=""),
-#   
-#   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/test_graphs_weighted_PFM_scores.txt",
-#               help=""),  
-#   
-#   make_option(c("-c", "--aligned_pos"), type="character", 
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/align_multivalent_sites/test_aligned_positions.bed",
-#               help="") );
-
-# option_list = list(
-#   make_option(c("-a", "--coordinates"), type="character",
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_center100_affimx_position_with_coordinates.txt",
-#               help=""),
-#   
-#   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/ZN107_top_500_graphs_weighted_PFM_scores.txt",
-#               help=""),  
-#   
-#   make_option(c("-c", "--aligned_pos"), type="character", 
-#               default="/home/ahcorcha/repos/tools/RCADEEM/out/ZN107_top_500/align_multivalent_sites/ZN107_top_500_aligned_positions.bed",
-#               help="") );
-
 option_list = list(
   make_option(c("-a", "--coordinates"), type="character",
-              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/align_multivalent_sites/PRDM13_top_500_center100_affimx_position_with_coordinates.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_center100_affimx_position_with_coordinates.txt",
               help=""),
   
   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/PRDM13_top_500_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),  
   
   make_option(c("-c", "--aligned_pos"), type="character", 
-              default="/home/ahcorcha/repos/ahcorcha/Projects/P2_TF_Methyl/bin/codebook_ChIP_seq/data/04_RCADEEM/PRDM13_top_500/align_multivalent_sites/PRDM13_top_500_aligned_positions.bed",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions.bed",
               help="") );
-
-
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser); rm(option_list, opt_parser)
+#####
 
 
 # read the position and weighted HMM matrices
@@ -60,10 +33,8 @@ if( ncol(pos) != ncol(weighted_hmm)+3 |
 {
   cat("ERROR: Incompatible matrices.\n")
   quit(status=1)
-} else
-{
-  cat("Matrices are compatible.\n")
-}
+}else{ cat("Matrices are compatible.\n") }
+
 
 # get the motif names, their range, and their corresponding offset
 nmotifs <- ncol(weighted_hmm) - 2

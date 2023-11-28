@@ -79,10 +79,12 @@ plot_averageogram <- function( data, label, units, filename ){
                                   coverage = rowSums( t( data ) ) )
 
   p1 <- ggplot( data = averageogram_dat, aes( x = x, y =  coverage ) ) +
+                geom_vline(xintercept=0.5+ncol(data)/2, linetype='dashed', color='grey', size=1) +
                 xlab("best motif hit") + ylab(units) + ggtitle(label) +
                 geom_line() + theme_light() +
                 theme(axis.text.x=element_blank(),
                       plot.title = element_text(hjust = 0.5) )
+                
   
   ggsave( filename = filename, plot = p1, width = 5, height = 5 )
 }
@@ -120,7 +122,7 @@ option_list = list(
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="default_none",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz,~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz",
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
@@ -131,11 +133,11 @@ option_list = list(
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
-              default="default_none",
+              default="hIP_seq,asdasd",
               help=""),
   
     make_option(c("-m", "--bw_units"), type="character",
-              default="default_none",
+              default="counts,asdasd",
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
@@ -147,11 +149,11 @@ option_list = list(
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
               help=""),
 
   make_option(c("-q", "--footprint_tab"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_50_repeats_TRUE/align_multivalent_sites/CTCF_top_2000_RC_range_50_repeats_TRUE_aligned_positions_footprint.tab",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
               help="")    
   );
 
@@ -168,14 +170,11 @@ dir.create( paste0( opt$out_dir, "/clusters" ) )
 opt$out_cluster_prefix <- paste0( opt$out_dir, "/clusters/", opt$experiment_name, "_cluster_cut_", opt$cutoff, "_size_", opt$minsize, "_" )
 
 
+opt$meta_pfm_len <- as.integer( opt$meta_pfm_len )
 # constants
 ## Number of zinc fingers
 nzfs <- as.integer(opt$meta_pfm_len)/3
 #####
-
-
-
-# tmp_bw_cov <- as.data.frame(fread( file = opt$footprint_tab, skip = 1, sep = "\t" ))
 
 
 
@@ -189,7 +188,10 @@ seq_len <- ncol(seq)-2
 seq <- seq[ apply(seq[,3:ncol(seq)], 1, function(x) sum(x==-1) ) == 0, ]
 
 # Zoom into the -20 +20 region around the metaPFM hit
-ht_seq <- seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)]
+# ht_seq <- seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)]
+start <- 3+as.integer(seq_len/2) - ceiling( as.integer(opt$meta_pfm_len)/2 )
+ht_seq <- seq[,( start - 20 ):( start + nzfs * 3 + 20 ) ]
+
 
 # seq_cols <- paste0( "seq_", (-20):(nzfs*3+20) )
 seq_cols <- paste0( (-20):(nzfs*3+20) )
@@ -214,7 +216,7 @@ colors_bases <- structure( c("#008000", "#ffb200", "#0000ff", "#ff0000"),
 
 ##################################################### Read motif HMM matrix ####
 # read the weighted HMM matrix, with one column per motif
-cat("Reading the HMM scores ...\n")
+cat("Reading motif HMM scores ...\n")
 
 weighted_hmm <- fread( opt$weighted_PFM, sep = "\t", data.table = F )
 weighted_hmm$Gene <- gsub( "CHR", "chr", weighted_hmm$Gene )
@@ -229,6 +231,7 @@ weighted_hmm <- weighted_hmm[ apply(weighted_hmm[3:(2+nmotifs)],1,max) >= opt$cu
 
 
 ######################################################## Read ZF HMM matrix ####
+cat("Reading ZF HMM matrix ...\n")
 if ( file.exists(opt$ZF_binding_scores) ) {
   # read the weighted HMM matrix, with one column per ZF
   weighted_zf <-fread( opt$ZF_binding_scores, sep = "\t", data.table = F )
@@ -283,18 +286,17 @@ data_ht$utilization_proportion <- ( rowSums(data_ht[,zf_cols]!=0) ) / length(zf_
 
 
 ################################################### Read original peak #########
+cat("Reading Original bed file with score ...\n")
 aligned_bed <- fread( opt$aligned_bed, sep = "\t", data.table = T, header = F )
-aligned_bed <- aligned_bed[, c("V2", "V4", "V7")]
+aligned_bed$coord_meta <- aligned_bed$V2 + (aligned_bed$V3 - aligned_bed$V2)/2
+aligned_bed <- aligned_bed[, c("coord_meta", "V4", "V5")]
 colnames(aligned_bed) <- c("coord_meta", "Gene", "cluster")
 aligned_bed$cluster <- gsub("-", "_", aligned_bed$cluster)
 
 tmp <- gsub("zfs:", "", aligned_bed$cluster )
 tmp <- as.data.frame( str_split_fixed(string = tmp, pattern = "_", n = 2) )
-aligned_bed$first_ZF <- as.numeric( tmp$V1 )
-aligned_bed$second_ZF <- as.numeric( tmp$V2 )
-
-aligned_bed$coord_meta <- aligned_bed$coord_meta + ( as.integer(opt$meta_pfm_len)/2)
-
+aligned_bed$first_ZF <- as.integer( tmp$V1 )
+aligned_bed$second_ZF <- as.integer( tmp$V2 )
 
 
 original_bed <- as.data.frame(fread( opt$input_bed, sep = "\t", data.table = T, header = F ))
@@ -313,11 +315,6 @@ original_bed <- original_bed[ , !colnames(original_bed) %in% c("chr","start", "s
 
 summit_dist <- merge(x=original_bed, y = aligned_bed, by = "Gene", all = TRUE)
 summit_dist$summit_dist <- summit_dist$coord_meta - summit_dist$coord_summit
-
-
-
-
-
 
 
 data_ht <- merge(x=data_ht, y = summit_dist, by = "Gene", all.x = TRUE)
@@ -342,8 +339,44 @@ rm(summit_dist, original_bed, aligned_bed)
 
 
 
+############################################################# Read footprint ####
+if( opt$footprint_tab != "default_none" ){
+  
+  foot_counts <- as.data.frame( fread( file = opt$footprint_tab, skip = 1, sep = "\t" ) )
+  foot_counts <- foot_counts[, c( 4, 7:ncol( foot_counts ) ) ]
+  foot_counts[ is.na( foot_counts ) ] <- 0
+  
+  ## Center matrix
+  num_cols <- 200 + as.integer(opt$meta_pfm_len)
+  
+  foot_counts <- foot_counts[, 1:(num_cols+1) ]
+  
+  footprint_cols <- paste0( "footprints_", 1:( num_cols ) ) 
+  
+  colnames(foot_counts) <- c("Gene", footprint_cols )
+  
+  col_fun_foot <- colorRamp2( c( 0, 30, 60), c( "white", "red", "black" ) )
+  
+  anno_zf_col_fun = colorRamp2(c(1, nzfs), c("grey", "black"))
+  
+  zf_annotations <- c( rep_len( x = NA,length.out = 100),
+                       sort(rep_len( x = 1:nzfs, length.out = 3*nzfs), decreasing = TRUE),
+                       rep_len( x = NA,length.out = 100) )
+  
+  zf3_column_ha <- HeatmapAnnotation( ZFs = zf_annotations, col = list(ZFs = anno_zf_col_fun), 
+                                      na_col = "white" )
+  
+  data_ht <- merge(x = data_ht, y = foot_counts, by = "Gene", all.x = TRUE )
+}
+
+
+
+#####
+
+
 
 ################################################# Add repeat data  #############
+cat("Reading overlapping repeats ...\n")
 repeats <- as.data.frame(read.csv(file = opt$repeats_info, header = FALSE, sep = "\t"))
 repeats <- repeats[, c("V4", "V10", "V11", "V12", "V13")]
 colnames(repeats) <- c("Gene", "repName", "repClass", "repFamily", "distance")
@@ -373,15 +406,13 @@ repeats <- cast(repeats[,c("Gene", "repClass", "state")],
 repeat_cols <- colnames(repeats)[-1]
 length(repeat_cols)
 
-if( length(repeat_cols) == 1 ){
-  
-  if( repeat_cols == "No_repeats"){
-    
-    repeats$Repeats <- 0
-    repeat_cols <- c("No_repeats", "Repeats")
-    rep_ht_width <- 2
 
-  }else{ rep_ht_width <- 8 }
+rep_ht_width <- 8
+if( (length(repeat_cols) == 1) && (repeat_cols == "No_repeats") ){
+    
+  repeats$Repeats <- 0
+  repeat_cols <- c("No_repeats", "Repeats")
+  rep_ht_width <- 2
 }
 
 data_ht <- merge(x = data_ht, y = repeats, by = "Gene", all.x = TRUE )
@@ -406,6 +437,7 @@ rm(dummy_repeats, repeats, already_in_repeats, diff_tmp, mid)
 ################################################### Read computeMatrix #########
 ## Read computeMatrix file(s) (from bigwigs), labels and units 
 ## In this case is ChIP-seq data but it can work with any bw file
+cat("Reading bigwig(s) ...\n")
 
 if ( (opt$computeMatrix != "default_none") ) {
   
@@ -446,7 +478,9 @@ if ( (opt$computeMatrix != "default_none") ) {
     list_of_cov_df[[i]] <- tmp_bw_cov
   }
   
-   merged_bw_df <- Reduce(function(dtf1, dtf2) merge(dtf1, dtf2, by = "Gene", all = TRUE), 
+  
+  
+  merged_bw_df <- Reduce(function(dtf1, dtf2) merge(dtf1, dtf2, by = "Gene", all = TRUE), 
                           list_of_cov_df)
   
   data_ht <- merge(x = data_ht, y = merged_bw_df, by = "Gene", all.x = TRUE )
@@ -472,7 +506,7 @@ data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
 max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
 row_order <- vector()
-cat("Finding clusters per ZF array ... \n")
+cat("Clustering by sequence per ZF array ... \n")
 for( cluster in unique(data_ht$cluster)){
   
   cat(cluster)
@@ -516,10 +550,13 @@ for( cluster in unique(data_ht$cluster)){
     hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
     
     row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
+  } 
+  else{ 
+    row_order <- c( row_order, rownames( this_seq ) ) 
   }
-  else{ row_order <- c( row_order, rownames( this_seq ) ) }
 }
 
+length(row_order)
 ## Reorder by new clustering
 data_ht <- data_ht[ row_order, ]
 
@@ -571,16 +608,25 @@ if (has_score) {
 #                                   ylim = c( -200, (200+3*nzfs) ),
 #                                   axis_param = list( direction = "normal") ) )
 
+score_lim <- max( c( abs( max(data_ht$summit_dist) ), abs( min(data_ht$summit_dist) ) ) )
+score_limits <- c(-score_lim-5, score_lim+5 )
+
+# summit_annotation <- rowAnnotation(
+#   width = unit(5, "cm"),
+#   GHT_summit = anno_lines( cbind( data_ht$summit_dist, rep.int(x=0, times = nrow(data_ht)) ),
+#                                   border = TRUE,
+#                                   ylim = score_limits ,
+#                                   axis_param = list( direction = "normal") ) )
+
+
 summit_annotation <- rowAnnotation(
   width = unit(5, "cm"),
-  GHT_summit = anno_lines( cbind( data_ht$summit_dist, rep.int(x=0, times = nrow(data_ht)) ),
-                                  border = TRUE,
-                                  ylim = c( -200, 200 ),
-                                  axis_param = list( direction = "normal") ) )
+  GHT_summit = anno_lines( data_ht$summit_dist,
+                           border = TRUE,
+                           ylim = score_limits ,
+                           axis_param = list( direction = "normal") ) )
 
 
-    
-    
 # ha = HeatmapAnnotation(foo = anno_lines(cbind(c(1:5, 1:5), c(5:1, 5:1)), 
 #     gp = gpar(col = 2:3), add_points = TRUE, pt_gp = gpar(col = 5:6), pch = c(1, 16)))
 
@@ -591,22 +637,27 @@ summit_annotation <- rowAnnotation(
 
 
 
+
+
 ########################################################## Draw heatmaps #######
 my_use_raster <- TRUE
 
 htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ), 
                                    width = unit(4, "cm"),
+                                   cluster_rows = FALSE,
+                                   cluster_row_slices = FALSE,
+                                   # row_order = row_order,
+                                   row_split = factor(data_ht$cluster, unique( data_ht$cluster) ),
+                                   row_title_rot = 0,
+                                   row_gap = unit(4, "mm"),
                                    top_annotation = zf2_column_ha,
                                    use_raster = my_use_raster,
                                    raster_quality = 2,
                                    cluster_columns = FALSE,
-                                   cluster_rows = FALSE,
-                                   row_dend_reorder = TRUE,
-                                   clustering_distance_rows = hamming_dist,
                                    show_column_names =  TRUE,
                                    show_row_names  =  FALSE,
                                    col = col_fun_zf,
-                                   name = "Zinc_finger_score",
+                                   name = "binding_score",
                                    column_title = "Zinc_finger",
                                    border_gp = gpar(col = "black"),
                                    heatmap_legend_param = list(legend_direction = "horizontal") )
@@ -616,10 +667,8 @@ htm_usage <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, "utilization_proporti
                                       use_raster = my_use_raster,
                                       raster_quality = 2,
                                       cluster_columns = FALSE,
-                                      cluster_rows = FALSE,
-                                      row_dend_reorder = TRUE,
-                                      show_column_names =  TRUE,
                                       show_row_names  =  FALSE,
+                                      show_column_names =  TRUE,
                                       col = col_fun_usage,
                                       name = "1.utilization_proportion",
                                       column_title = "1",
@@ -635,12 +684,11 @@ htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     column_split = col_split,
                                     width = unit(27, "cm"),
                                     top_annotation = zf1_column_ha,
+                                    show_row_names  =  FALSE,
                                     use_raster = my_use_raster,
                                     raster_quality = 2,
                                     cluster_columns = FALSE, 
-                                    cluster_rows = FALSE,
                                     show_column_names = TRUE,
-                                    show_row_names  =  FALSE,
                                     col = colors_bases,
                                     name = "Sequence",
                                     column_title = "Sequence",
@@ -659,9 +707,8 @@ if ( (opt$computeMatrix != "default_none") ) {
                                       width = unit(5, "cm"),
                                       raster_quality = 2,
                                       cluster_columns = FALSE, 
-                                      cluster_rows = FALSE,
                                       show_column_names = FALSE,
-                                      show_row_names = FALSE,
+                                      show_row_names  =  FALSE,
                                       col = list_of_col_fun[[i]],
                                       name = paste0( "log10_", bigwig_units[[i]] ),
                                       column_title = bigwig_labels[[i]],
@@ -678,34 +725,61 @@ htm_rep <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, repeat_cols] ),
                                     use_raster = my_use_raster,
                                     raster_quality = 2,
                                     cluster_columns = FALSE, 
-                                    cluster_rows = FALSE,
                                     show_column_names =  TRUE,
-                                    show_row_names  =  FALSE,
                                     col = col_fun_rep,
+                                    show_row_names  =  FALSE,
                                     name = "RepeatClass",
                                     column_title = "RepeatClass",
                                     border_gp = gpar(col = "black"),
                                     heatmap_legend_param = list(legend_direction = "horizontal"))
 
-
-if (opt$computeMatrix == "default_none") {
-  all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation + htm_rep
-  bw_add_width <- 0
-} else{
-  all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation + htm_rep + sum_bw_htms
-  bw_add_width <- 2 * length(bigwig_list)
+ft_add_width <- 0
+if( opt$footprint_tab != "default_none" ){
+  htm_foot <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, footprint_cols] ), 
+                                     width = unit(10, "cm"),
+                                     top_annotation = zf3_column_ha,
+                                     use_raster = my_use_raster,
+                                     raster_quality = 2,
+                                     cluster_columns = FALSE,
+                                     show_column_names =  FALSE,
+                                     show_row_names  =  FALSE,
+                                     col = col_fun_foot,
+                                     name = "footprint_counts",
+                                     column_title = "footprint_counts (3' and 5')",
+                                     border_gp = gpar(col = "black"),
+                                     heatmap_legend_param = list(legend_direction = "horizontal") )
+  ft_add_width <- 7
 }
+
+
+all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation + htm_rep
+
+
+add_width <- 0
+
+if( opt$footprint_tab != "default_none" ){
+  all_htm <- all_htm + htm_foot
+  add_width <- add_width + 10
+}
+
+
+if (opt$computeMatrix != "default_none") {
+  all_htm <- all_htm + sum_bw_htms
+  add_width <- add_width + ( 2 * length(bigwig_list) )
+}
+
 
 if (has_score) {
   all_htm <- score_annotation + all_htm
-  bw_add_width <- bw_add_width + 0.2
+  add_width <- add_width + 0.2
 }
 
 
-pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
-     width = 22 + bw_add_width, height = 15 )
 
-drawned_all_htm <- draw( all_htm, ht_gap = unit( 0.25, "cm" ), 
+pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
+     width = 22 + add_width, height = 20 )
+
+drawned_all_htm <- draw( all_htm, ht_gap = unit( 0.25, "cm" ), main_heatmap = "binding_score",
                          column_title = paste0( opt$title, "\nn = ", nrow(data_ht)),
                          merge_legends = FALSE,
                          heatmap_legend_side = "right", annotation_legend_side = "right" )
@@ -717,6 +791,101 @@ write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ),
 #####
 
 
+
+
+
+##################################################################################################### ###
+##################################################################################################### ###
+
+
+
+
+################################################# Per cluster operations #######
+if (opt$computeMatrix != "default_none") {
+
+  cat("Writting averageogram per ZF mode and bw provided ...\n")
+
+  for ( i in 1:length( unique(data_ht$cluster) ) ){
+    # i <- 1
+    cluster <- unique(data_ht$cluster)[i]
+    
+    this_cluster_data <- data_ht[ data_ht$cluster == cluster, ]
+
+    for ( j in 1:length( list_of_cols ) ) {
+      # i <- 1
+      cat( paste0( "Cluster: ", cluster, " - ", bigwig_labels[[j]], "\n" ) )
+      a <- this_cluster_data[, list_of_cols[[j]]] 
+      
+        
+      plot_averageogram( data = this_cluster_data[, list_of_cols[[j]]],
+                         label = paste0( "ZF array: ", cluster, "\n", bigwig_labels[[j]] ),
+                         units = paste0("log10_", bigwig_units[[j]]),
+                         filename = paste0(opt$out_cluster_prefix, "ZF_array_", cluster, "_",
+                                           bigwig_labels[[j]], "_averageogram.pdf" ) )
+      
+    }
+  }
+}
+#####
+
+
+
+############################## Write footprint averageogram per cluster  #######
+if (opt$footprint_tab != "default_none") {
+
+  cat("Writting averageogram per ZF mode for footprints ...\n")
+
+  for ( i in 1:length( unique(data_ht$cluster) ) ){
+    # i <- 1
+    cluster <- unique(data_ht$cluster)[i]
+    cat( paste0(cluster, "\n") )
+    
+    this_cluster_data <- as.data.frame(data_ht[ data_ht$cluster == cluster, footprint_cols ])
+    this_cluster_data <- as.data.frame( t( this_cluster_data ) )
+    points <- colnames(this_cluster_data)
+    
+    if (length(points) == 1){
+      this_cluster_data$mean <- (this_cluster_data[, points])  
+    }else{
+      this_cluster_data$mean <- rowMeans(this_cluster_data[, points])  
+    }
+    
+    this_cluster_data$position <- 1:nrow(this_cluster_data)
+        
+    first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
+    second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
+  
+    start_pos <- ( 3*(max_ZF-second_ZF) )
+    end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
+    
+    this_cluster_data$sd <- rowSds( as.matrix(this_cluster_data[, points] ) )
+    this_cluster_data$se <- this_cluster_data$sd / length(points)
+    
+    
+    p1 <- ggplot(this_cluster_data, aes(x=position, y=mean)) + 
+      geom_errorbar( aes( ymin = mean - se, ymax = mean + se ), color = "grey" ) +
+      geom_line( linetype='solid', color='black', linewidth=0.5 ) +
+      ggtitle(paste0( "3' and 5' ends counts for ", opt$title, "\nCluster: ", cluster, "\nn = ", length(points) ) ) +
+      
+      geom_vline(xintercept=100, linetype='solid', color='red', linewidth=0.5) +
+      geom_vline(xintercept=99+opt$meta_pfm_len, linetype='solid', color='red', linewidth=0.5) +
+      
+      geom_vline(xintercept=100+start_pos, linetype='dashed', color='grey', linewidth=0.5) +
+      geom_vline(xintercept=100+end_pos, linetype='dashed', color='grey', linewidth=0.5) +
+      
+      # geom_point() + 
+      theme_light() + 
+      labs(caption = paste0( "Error bars - SEM\n", 
+                             "Red vertical lines - start/end of metaPFM\n",
+                             "Grey dashed lines - start/end of ZF array used for this cluster"))+
+      theme(plot.title = element_text(hjust = 0.5), plot.caption = element_text(hjust =0) ) +
+      NULL
+    
+    ggsave(filename = paste0(opt$out_cluster_prefix, "ZF_array_",cluster, "_footprint.pdf"), 
+           plot = p1, height = 4.5, width = 12 )
+  }
+}
+#####
 
 
 
@@ -759,50 +928,9 @@ for ( cluster in unique(data_ht$cluster) ){
 
 
 
-################################################# Per cluster operations #######
-if (opt$computeMatrix != "default_none") {
-  
-  cat("Writting averageogram per ZF mode and bw provided ...\n")
-  
-  for ( i in 1:length( unique(data_ht$cluster) ) ){
-    # i <- 1
-    cluster <- unique(data_ht$cluster)[i]
-    this_cluster_data <- data_ht[ data_ht$cluster == cluster, ]
-
-
-    for ( j in 1:length( list_of_cols ) ) {
-      # i <- 1
-      cat( paste0( bigwig_labels[[j]], ", Cluster: ", cluster, "\n" ) )
-      
-      
-      plot_averageogram( data = this_cluster_data[, list_of_cols[[i]]],
-                         label = paste0( "ZF array: ", cluster, "\n", bigwig_labels[[j]] ),
-                         units = paste0("log10_", bigwig_units[[j]]),
-                         filename = paste0(opt$out_cluster_prefix, "ZF_array_", cluster, "_",
-                                           bigwig_labels[[j]], "_averageogram.pdf" ) )
-    }
-  }
-}
-#####
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ############################################################ Old clustering ####
 if (nmotifs > 1) {
-  
+  cat("Old clustering the sequences ...\n")
   ################################################################# Filtering ####
   # identify the genes that are present in all the matrices
   genes <- seq$Gene

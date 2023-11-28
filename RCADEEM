@@ -77,6 +77,14 @@ parser.add_argument("--rcadeem_range", dest="RC_RANGE", action="store",
 parser.add_argument("--bed_has_score", dest="BED_HAS_SCORE", action="store_true",
                     help="the fourth column in the input bed files is a numeric score that will be shown in the aligned heatmap")
 
+parser.add_argument("--footprint_file", dest="FOOTPRINT", action="store",
+                    help="", default = "default_none")
+
+parser.add_argument("--footprint_file_type", dest="FOOTPRINT_TYPE", action="store",
+                    help="")
+
+parser.add_argument("--input_fasta", dest="INPUT_FASTA", action="store",
+                    help="", default = "default_none")
 
 args = parser.parse_args()
         
@@ -102,7 +110,7 @@ if __name__ == '__main__':
     args.OUT_PREFIX = args.OUT_DIR + "/" + args.JOB_ID + "_"
 
 
-    log= open(args.OUT_PREFIX + "commands.log", "w")
+    log = open(args.OUT_PREFIX + "commands.log", "w")
     log.write("Start test\n")
 
 
@@ -112,9 +120,21 @@ if __name__ == '__main__':
 
 
     if "HEATMAP" in args.TASK:
-        print("align multivalent sites ...")
-        align_multivalent_sites.align_multivalent_sites( args, log )
+
+        input_bed = args.OUT_PREFIX + "input_coordinates.bed"
+        # input_fasta = args.OUT_PREFIX + "input_sequences.fasta"
+        input_fasta = args.INPUT_FASTA
+
+
+        if os.path.isfile( input_bed ):
+            print("Align multivalent sites (genomic) ...")
+            align_multivalent_sites.align_multivalent_sites( args, log )
     
+
+        if os.path.isfile( input_fasta ):
+            print("Align multivalent sites (fasta) ...")
+            align_multivalent_sites.align_multivalent_sites_fasta( args, log )
+
 
     log.write("\n\n")
     log.close()
