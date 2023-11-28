@@ -79,7 +79,7 @@ plot_averageogram <- function( data, label, units, filename ){
                                   coverage = rowSums( t( data ) ) )
 
   p1 <- ggplot( data = averageogram_dat, aes( x = x, y =  coverage ) ) +
-                geom_vline(xintercept=0.5+ncol(data)/2, linetype='dashed', color='grey', size=1) +
+                geom_vline(xintercept=0.5+ncol(data)/2, linetype='dashed', color='grey', linewidth=1) +
                 xlab("best motif hit") + ylab(units) + ggtitle(label) +
                 geom_line() + theme_light() +
                 theme(axis.text.x=element_blank(),
@@ -355,7 +355,7 @@ if( opt$footprint_tab != "default_none" ){
   
   colnames(foot_counts) <- c("Gene", footprint_cols )
   
-  
+  foot_counts[, footprint_cols] <- log10( foot_counts[, footprint_cols] + 1 )
   
   
   
@@ -478,7 +478,7 @@ if ( (opt$computeMatrix != "default_none") ) {
     tmp_bw_cols <- paste0("bw_", i, "_cov_", 1:(ncol(tmp_bw_cov)-1) )
     colnames(tmp_bw_cov) <- c("Gene", tmp_bw_cols )
     
-    tmp_bw_cov[, tmp_bw_cols] <- log10( tmp_bw_cov[, tmp_bw_cols] + 0.1 )
+    tmp_bw_cov[, tmp_bw_cols] <- log10( tmp_bw_cov[, tmp_bw_cols] + 1 )
     
     
     ########################################################### Color scale bw
@@ -728,7 +728,7 @@ if ( (opt$computeMatrix != "default_none") ) {
                                       show_column_names = FALSE,
                                       show_row_names  =  FALSE,
                                       col = list_of_col_fun[[i]],
-                                      name = paste0( "log10_", bigwig_units[[i]] ),
+                                      name = paste0( "log10_", bigwig_units[[i]], "+1" ),
                                       column_title = bigwig_labels[[i]],
                                       border_gp = gpar(col = "black"),
                                       heatmap_legend_param = list(legend_direction = "horizontal"))
@@ -762,7 +762,7 @@ if( opt$footprint_tab != "default_none" ){
                                      show_column_names =  FALSE,
                                      show_row_names  =  FALSE,
                                      col = col_fun_foot,
-                                     name = "footprint_counts",
+                                     name = "log10_footprint_counts+1",
                                      column_title = "footprint_counts (3' and 5')",
                                      border_gp = gpar(col = "black"),
                                      heatmap_legend_param = list(legend_direction = "horizontal") )
