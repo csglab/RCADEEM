@@ -83,9 +83,6 @@ parser.add_argument("--footprint_file", dest="FOOTPRINT", action="store",
 parser.add_argument("--footprint_file_type", dest="FOOTPRINT_TYPE", action="store",
                     help="")
 
-parser.add_argument("--input_fasta", dest="INPUT_FASTA", action="store",
-                    help="", default = "default_none")
-
 args = parser.parse_args()
         
 if __name__ == '__main__':
@@ -131,7 +128,7 @@ if __name__ == '__main__':
             align_multivalent_sites.align_multivalent_sites( args, log )
     
 
-        if os.path.isfile( input_fasta ):
+        if os.path.isfile( args.TARGET_FASTA ):
             print("Align multivalent sites (fasta) ...")
             align_multivalent_sites.align_multivalent_sites_fasta( args, log )
 

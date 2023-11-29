@@ -138,9 +138,6 @@ def align_multivalent_sites( args, log ):
 
 def align_multivalent_sites_fasta( args, log ):
 
-    # input_fasta = args.OUT_PREFIX + "input_sequences.fasta"    
-    input_fasta = args.INPUT_FASTA
-
     align_dir = args.OUT_DIR + "/align_multivalent_sites"
     if not os.path.exists(align_dir): os.makedirs(align_dir)
     args.OUT_ALIGN_PREFIX = align_dir + "/" + args.JOB_ID + "_"
@@ -162,11 +159,11 @@ def align_multivalent_sites_fasta( args, log ):
         meta_PFM_len = len(first_row) - 2
 
 
-    cmdline = f""" {args.script_path}/src/AffiMx -pwm {OPT_PFM} -fasta {input_fasta} -out {affimx_prefix} """
+    cmdline = f""" {args.script_path}/src/AffiMx -pwm {OPT_PFM} -fasta {args.TARGET_FASTA} -out {affimx_prefix} """
     utils.run_cmd(cmdline, log)
 
 
     #### Create aligned heatmaps
-    cmdline = f""" Rscript {args.script_path}/src/_R/_align_multivalent_sites_fasta.R --coordinates={affimx_pos} --weighted_PFM_scores={weighted_PFM} --fasta={input_fasta} --ZF_binding_scores={ZF_binding_score} --meta_pfm_len={meta_PFM_len} --out_dir={align_dir} --cutoff={args.CUTOFF} --minsize={args.MINSIZE} --experiment_name={args.JOB_ID} """
+    cmdline = f""" Rscript {args.script_path}/src/_R/_align_multivalent_sites_fasta.R --coordinates={affimx_pos} --weighted_PFM_scores={weighted_PFM} --fasta={args.TARGET_FASTA} --ZF_binding_scores={ZF_binding_score} --meta_pfm_len={meta_PFM_len} --out_dir={align_dir} --cutoff={args.CUTOFF} --minsize={args.MINSIZE} --experiment_name={args.JOB_ID} """
 
     utils.run_cmd(cmdline, log)
