@@ -17,33 +17,38 @@ reverse_complement <- function( sequence ){
 }
 
 
-get_seq_col_split <- function( seq_cols, prefix_len, suffix_len, nzfs, bin_length ){
-  # bin_length <- 10
+get_seq_col_split <- function( zf_annotations ){
+  bin_length <- 10
+  
   ref_chars <- c("b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n",
                  "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "aa", "ab",
                  "ac", "ad", "ae", "af", "ag", "ah", "ai", "aj", "ak", "al")
-
-  motif_length <- as.numeric( as.numeric(nzfs)*3 )
-  num_bins <- as.numeric( motif_length / bin_length )
-
-
-
+  
+  i <- 0
+  for ( j in zf_annotations ){ if(is.na(j)) {i <- i + 1} else {break}}
+  prefix_len <- i
+  i <- 0
+  for ( j in rev(zf_annotations) ){ if(is.na(j)) {i <- i + 1} else {break}}
+  suffix_len <- i
+  
+  mid_len <- length( zf_annotations[ !is.na( zf_annotations ) ] )
+  
+  num_bins <- as.numeric( mid_len / bin_length )
+  
+  
   seq_bins_main <- sort( rep_len( x = ref_chars[ 1: floor( num_bins ) ],
                                   length.out = floor( num_bins )*bin_length ) )
-
-  seq_bins_extra_len <- as.integer( motif_length - length(seq_bins_main) )
-
+  
+  seq_bins_extra_len <- as.integer( mid_len - length(seq_bins_main) )
+  
   seq_bins_extra <- rep_len(x = "y", length.out =  seq_bins_extra_len )
-
+  
+  
   col_split <- c( rep_len(x = "a", length.out = prefix_len),
                   seq_bins_main,
                   seq_bins_extra,
                   rep_len(x = "z", length.out = suffix_len) )
 
-  if(length(seq_cols) != length( col_split  ) ){
-    cat("ERROR: num. of sequence column should be the same as num. col_split")
-    # q()
-  }
   return(col_split)
 }
 #####
@@ -53,27 +58,27 @@ get_seq_col_split <- function( seq_cols, prefix_len, suffix_len, nzfs, bin_lengt
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--coordinates"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/CTCF_YWG_A_AT40NAGCCTC_random_2000_center100.affimx.position.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/align_multivalent_sites/ZNF208_YWR_A_CG40NGTTATT_random_2000_.affimx.position.txt",
               help=""),
   
   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_graphs_weighted_PFM_scores.txt",
               help=""),  
   
   make_option(c("-d", "--fasta"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_sample_2000.fa",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_sample_2000.fa",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--meta_pfm_len"), type="character", 
-              default="33",
+              default="78",
               help=""),
   
   make_option(c("-g", "--out_dir"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/align_multivalent_sites/",
               help=""),
   
   make_option(c("-i", "--cutoff"), type="character",
@@ -85,7 +90,7 @@ option_list = list(
               help=""),
   
   make_option(c("-k", "--experiment_name"), type="character",
-              default="CTCF_YWG_A_AT40NAGCCTC_random_2000",
+              default="ZNF208_YWR_A_CG40NGTTATT_random_2000",
               help="")
   
   );
@@ -359,9 +364,15 @@ colors_bases <- structure( c("#008000", "#ffb200", "#0000ff", "#ff0000", "white"
 
 
 ######################################################### ZF annotations #######
+suffix_len <- length(seq_cols) - new_motif_start - opt$meta_pfm_len
+suffix_len <- max( suffix_len, 0 )
+
 zf_annotations <- c( rep_len( x = NA,length.out = new_motif_start),
                      sort(rep_len( x = 1:nzfs, length.out = 3*nzfs), decreasing = TRUE),
-                     rep_len( x = NA,length.out = length(seq_cols) - new_motif_start - opt$meta_pfm_len) )
+                     rep_len( x = NA,length.out = suffix_len ) )
+
+zf_annotations <- zf_annotations[1:length(seq_cols)]
+
 
 anno_zf_col_fun = colorRamp2(c(1, nzfs), c("grey", "black"))
 
@@ -519,10 +530,7 @@ htm_usage <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, "utilization_proporti
                                       border_gp = gpar(col = "black"),
                                       heatmap_legend_param = list(legend_direction = "horizontal") )
 
-col_split <- get_seq_col_split( seq_cols, 
-                                prefix_len = new_motif_start, 
-                                suffix_len = (length(seq_cols) - new_motif_start - opt$meta_pfm_len), 
-                                nzfs, bin_length = 10 )
+col_split <- get_seq_col_split( zf_annotations )
 
 htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     column_split = col_split,
