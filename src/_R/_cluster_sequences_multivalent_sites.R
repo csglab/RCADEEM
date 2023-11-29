@@ -94,7 +94,7 @@ plot_averageogram <- function( data, label, units, filename ){
 option_list = list(
 
   make_option(c("-a", "--out_dir"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -106,54 +106,54 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
               help=""),
 
   make_option(c("-f", "--align_num"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
               help=""),
 
   make_option(c("-g", "--title"), type="character",
-              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF678_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz,~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_13737_ZNF678_ChIP2_S226_pulldown_bw_cov_computeMatrix_out.tab.gz",
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
               help=""),
     make_option(c("-k", "--experiment_name"), type="character",
-              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF678_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
-              default="hIP_seq,asdasd",
+              default="ChIP_2k_range",
               help=""),
   
     make_option(c("-m", "--bw_units"), type="character",
-              default="counts,asdasd",
+              default="ChIP_counts",
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
               help=""),
   
   make_option(c("-o", "--meta_pfm_len"), type="character",
-              default="33",
+              default="42",
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
               help=""),
 
   make_option(c("-q", "--footprint_tab"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
+              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
               help="")    
   );
 
@@ -267,8 +267,7 @@ col_fun_usage <-colorRamp2( c( 0, 0.5, 1),c( "white", "grey", "black" ) )
 diff_tmp <-  abs( max( ht_weighted_zf[, zf_cols] ) -  min( ht_weighted_zf[, zf_cols] ) )
 mid <- min( ht_weighted_zf[, zf_cols] ) + diff_tmp/2
 
-col_fun_zf <- colorRamp2( c( min(ht_weighted_zf[, zf_cols])-1e-6, mid, 
-                             max(ht_weighted_zf[, zf_cols])+1e-6),
+col_fun_zf <- colorRamp2( c( 0, mid, max(ht_weighted_zf[, zf_cols]) ),
                           c( "white", "red", "black" ) )
 
 # col_fun_zf <- colorRamp2( c( 0, 3, 6),
@@ -474,6 +473,7 @@ if ( (opt$computeMatrix != "default_none") ) {
     bigwig <- bigwig_list[i]
     
     tmp_bw_cov <- as.data.frame(fread( file = bigwig, skip = 1, sep = "\t" ))
+    tmp_bw_cov[ is.na(tmp_bw_cov)] <- 0
     tmp_bw_cov <- tmp_bw_cov[-c(1,2,3,5,6)]
     tmp_bw_cols <- paste0("bw_", i, "_cov_", 1:(ncol(tmp_bw_cov)-1) )
     colnames(tmp_bw_cov) <- c("Gene", tmp_bw_cols )

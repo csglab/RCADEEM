@@ -126,7 +126,7 @@ def align_multivalent_sites( args, log ):
     if (args.FOOTPRINT == "default_none"):
         footprint_mat = "default_none"
     else:
-        cmdline = f"""computeMatrix reference-point --referencePoint TSS --binSize 1 --upstream 100 --downstream 200 --regionsFileName {align_pos_all_PFM} --scoreFileName {args.FOOTPRINT} --outFileName {footprint_mat} """
+        cmdline = f"""computeMatrix reference-point --referencePoint TSS --binSize 1 --upstream 100 --downstream 300 --regionsFileName {align_pos_all_PFM} --scoreFileName {args.FOOTPRINT} --outFileName {footprint_mat} """
         utils.run_cmd(cmdline, log)
 
 
