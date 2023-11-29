@@ -120,8 +120,6 @@ if __name__ == '__main__':
 
         input_bed = args.OUT_PREFIX + "input_coordinates.bed"
         # input_fasta = args.OUT_PREFIX + "input_sequences.fasta"
-        input_fasta = args.INPUT_FASTA
-
 
         if os.path.isfile( input_bed ):
             print("Align multivalent sites (genomic) ...")
