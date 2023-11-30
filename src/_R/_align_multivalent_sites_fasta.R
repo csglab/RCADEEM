@@ -58,27 +58,27 @@ get_seq_col_split <- function( zf_annotations ){
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--coordinates"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/align_multivalent_sites/ZNF208_YWR_A_CG40NGTTATT_random_2000_.affimx.position.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/CTCF_YWG_A_AT40NAGCCTC_random_2000_.affimx.position.txt",
               help=""),
   
   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_weighted_PFM_scores.txt",
               help=""),  
   
   make_option(c("-d", "--fasta"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_sample_2000.fa",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_sample_2000.fa",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/ZNF208_YWR_A_CG40NGTTATT_random_2000_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--meta_pfm_len"), type="character", 
-              default="78",
+              default="33",
               help=""),
   
   make_option(c("-g", "--out_dir"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF208_YWR_A_CG40NGTTATT_random_2000/align_multivalent_sites/",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/",
               help=""),
   
   make_option(c("-i", "--cutoff"), type="character",
@@ -90,7 +90,7 @@ option_list = list(
               help=""),
   
   make_option(c("-k", "--experiment_name"), type="character",
-              default="ZNF208_YWR_A_CG40NGTTATT_random_2000",
+              default="CTCF_YWG_A_AT40NAGCCTC_random_2000",
               help="")
   
   );
@@ -412,6 +412,9 @@ data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
 data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
 
 
+data_ht$mean_ZF <- ( data_ht$first_ZF + data_ht$second_ZF) / 2
+data_ht <- data_ht[ order(data_ht$mean_ZF, decreasing = FALSE),]
+
 
 max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
@@ -504,7 +507,8 @@ htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ),
                                    # row_order = row_order,
                                    row_split = factor(data_ht$cluster, unique( data_ht$cluster) ),
                                    row_title_rot = 0,
-                                   row_gap = unit(4, "mm"),
+                                   row_title_gp = gpar(fontsize = 10),
+                                   row_gap = unit(0, "mm"),
                                    top_annotation = zf2_column_ha,
                                    use_raster = my_use_raster,
                                    raster_quality = 2,

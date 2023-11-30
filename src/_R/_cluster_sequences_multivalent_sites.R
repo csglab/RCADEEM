@@ -94,7 +94,7 @@ plot_averageogram <- function( data, label, units, filename ){
 option_list = list(
 
   make_option(c("-a", "--out_dir"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -106,30 +106,30 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
               help=""),
 
   make_option(c("-f", "--align_num"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
               help=""),
 
   make_option(c("-g", "--title"), type="character",
-              default="ZNF678_top_2000_RC_range_25_repeats_FALSE",
+              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_13737_ZNF678_ChIP2_S226_pulldown_bw_cov_computeMatrix_out.tab.gz",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz",
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
               help=""),
     make_option(c("-k", "--experiment_name"), type="character",
-              default="ZNF678_top_2000_RC_range_25_repeats_FALSE",
+              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
@@ -141,19 +141,19 @@ option_list = list(
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/ZNF678_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
               help=""),
   
   make_option(c("-o", "--meta_pfm_len"), type="character",
-              default="42",
+              default="33",
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
+              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
               help=""),
 
   make_option(c("-q", "--footprint_tab"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF678_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF678_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
+            default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
               help="")    
   );
 
@@ -451,6 +451,7 @@ rm(dummy_repeats, repeats, already_in_repeats, diff_tmp, mid)
 #####
 
 
+
 ################################################### Read computeMatrix #########
 ## Read computeMatrix file(s) (from bigwigs), labels and units 
 ## In this case is ChIP-seq data but it can work with any bw file
@@ -520,6 +521,12 @@ data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
 
 data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
 data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+
+
+data_ht$mean_ZF <- ( data_ht$first_ZF + data_ht$second_ZF) / 2
+
+data_ht <- data_ht[ order(data_ht$mean_ZF, decreasing = FALSE),]
+
 
 max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
@@ -616,26 +623,8 @@ if (has_score) {
 
 
 ######################################### Distance from summit to motif annotation  #######
-# summit_annotation <- rowAnnotation(
-#   width = unit(5, "cm"),
-#   distance_to_motif = anno_lines( cbind( data_ht$summit_dist, 
-#                                          rep.int(x=0, times = nrow(data_ht)),
-#                                          rep.int(x=3*nzfs, times = nrow(data_ht)) 
-#                                          ),
-#                                   border = TRUE,
-#                                   ylim = c( -200, (200+3*nzfs) ),
-#                                   axis_param = list( direction = "normal") ) )
-
 score_lim <- max( c( abs( max(data_ht$summit_dist) ), abs( min(data_ht$summit_dist) ) ) )
 score_limits <- c(-score_lim-5, score_lim+5 )
-
-# summit_annotation <- rowAnnotation(
-#   width = unit(5, "cm"),
-#   GHT_summit = anno_lines( cbind( data_ht$summit_dist, rep.int(x=0, times = nrow(data_ht)) ),
-#                                   border = TRUE,
-#                                   ylim = score_limits ,
-#                                   axis_param = list( direction = "normal") ) )
-
 
 summit_annotation <- rowAnnotation(
   width = unit(5, "cm"),
@@ -644,30 +633,27 @@ summit_annotation <- rowAnnotation(
                            ylim = score_limits ,
                            axis_param = list( direction = "normal") ) )
 
-
-# ha = HeatmapAnnotation(foo = anno_lines(cbind(c(1:5, 1:5), c(5:1, 5:1)), 
-#     gp = gpar(col = 2:3), add_points = TRUE, pt_gp = gpar(col = 5:6), pch = c(1, 16)))
-
-
-
-
 #####
-
-
 
 
 
 ########################################################## Draw heatmaps #######
 my_use_raster <- TRUE
 
+# ha <- rowAnnotation(foo = anno_mark(at = c(1:4, 20, 60, 97:100), which = "row",
+#     labels = month.name[1:10]) )
+
 htm_zf <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, zf_cols] ), 
                                    width = unit(4, "cm"),
                                    cluster_rows = FALSE,
                                    cluster_row_slices = FALSE,
                                    # row_order = row_order,
-                                   row_split = factor(data_ht$cluster, unique( data_ht$cluster) ),
+                                   row_split = factor(data_ht$cluster, unique( data_ht$cluster ) ),
                                    row_title_rot = 0,
-                                   row_gap = unit(4, "mm"),
+                                   # row_title = "",
+                                   row_title_gp = gpar(fontsize = 10),
+                                   row_gap = unit(0, "mm"),
+                                   row_names_side = "right",
                                    top_annotation = zf2_column_ha,
                                    use_raster = my_use_raster,
                                    raster_quality = 2,
@@ -793,7 +779,6 @@ if (has_score) {
 }
 
 
-
 pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq.pdf"), 
      width = 22 + add_width, height = 20 )
 
@@ -810,11 +795,7 @@ write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ),
 
 
 
-
-
-##################################################################################################### ###
-##################################################################################################### ###
-
+############################################################################################################# ##
 
 
 
@@ -904,10 +885,6 @@ if (opt$footprint_tab != "default_none") {
   }
 }
 #####
-
-
-
-
 
 
 
