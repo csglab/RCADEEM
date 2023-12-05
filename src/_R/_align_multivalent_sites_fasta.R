@@ -58,27 +58,27 @@ get_seq_col_split <- function( zf_annotations ){
 ########################################################   IN and load data ####
 option_list = list(
   make_option(c("-a", "--coordinates"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/CTCF_YWG_A_AT40NAGCCTC_random_2000_.affimx.position.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/align_multivalent_sites/ZNF160_YWP_A_AC40NTCCTTG_random_2000_.affimx.position.txt",
               help=""),
   
   make_option(c("-b", "--weighted_PFM_scores"), type="character",
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_weighted_PFM_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/ZNF160_YWP_A_AC40NTCCTTG_random_2000_graphs_weighted_PFM_scores.txt",
               help=""),  
   
   make_option(c("-d", "--fasta"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_sample_2000.fa",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/ZNF160_YWP_A_AC40NTCCTTG_random_2000_sample_2000.fa",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/CTCF_YWG_A_AT40NAGCCTC_random_2000_graphs_ZF_binding_scores.txt",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/ZNF160_YWP_A_AC40NTCCTTG_random_2000_graphs_ZF_binding_scores.txt",
               help=""),
   
   make_option(c("-f", "--meta_pfm_len"), type="character", 
-              default="33",
+              default="60",
               help=""),
   
   make_option(c("-g", "--out_dir"), type="character", 
-              default="/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_YWG_A_AT40NAGCCTC_random_2000/align_multivalent_sites/",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/align_multivalent_sites/",
               help=""),
   
   make_option(c("-i", "--cutoff"), type="character",
@@ -90,7 +90,7 @@ option_list = list(
               help=""),
   
   make_option(c("-k", "--experiment_name"), type="character",
-              default="CTCF_YWG_A_AT40NAGCCTC_random_2000",
+              default="ZNF160_YWP_A_AC40NTCCTTG_random_2000",
               help="")
   
   );
@@ -395,6 +395,16 @@ zf2_column_ha <- HeatmapAnnotation(ZFs = zf2_annotations, col = list(ZFs = anno_
 ################################################################ Clustering ####
 rownames(data_ht) <- data_ht$Gene
 
+read_length <- stri_length( gsub("N", "", data_ht$Sequence[1] ) )
+
+data_ht$summit_dist <- ( data_ht$prefix + read_length/2 ) - ( length(seq_cols)/2 )
+
+data_ht <- data_ht[ order(data_ht$summit_dist, decreasing = TRUE),]
+
+
+
+
+
 data_ht$cluster <- gsub("-", "_", data_ht$cluster)
 
 tmp <- gsub("zfs:", "", data_ht$cluster )
@@ -405,11 +415,11 @@ data_ht$second_ZF <- as.integer( tmp$V2 )
 
 
 data_ht$sum <- rowSums(data_ht[,zf_cols])
-data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
+# data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
 
 
-data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
-data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+# data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
+# data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
 
 
 data_ht$mean_ZF <- ( data_ht$first_ZF + data_ht$second_ZF) / 2
@@ -418,66 +428,70 @@ data_ht <- data_ht[ order(data_ht$mean_ZF, decreasing = FALSE),]
 
 max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
-row_order <- vector()
-cat("Clustering by sequence per ZF array ... \n")
-for( cluster in unique(data_ht$cluster)){
-  
-  cat(cluster)
-  cat("\n")
-  # cluster <- "zfs:1_6"
-  
-  first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
-  second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
-  
-  ## https://stackoverflow.com/questions/35540059/how-to-insert-a-distance-matrix-into-r-and-run-hierarchical-clustering
-  
-  start_pos <- ( 3*(max_ZF-second_ZF) )
-  end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
-  
-  this_seq_cols <- as.character( start_pos:end_pos )
-  
-  ## Clustering using all the positions in the metaPFM hit
-  # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ 21:( 20 + 3*nzfs ) ] ]
-  
-  ## Clustering with the positions that are recognized with the ZF array
-  this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
-  
-  if( nrow(this_seq) >= 2 ){
-  
-    ## Concatenate base columns into a sequence vector
-    complete_seqs <- apply(this_seq, 1, function(x) paste(x, collapse = ""))
-    names( complete_seqs ) <- rownames(this_seq)
-    
-    ## Calc. sequence distance matrix
-    dist_seq <- stringdistmatrix( a = complete_seqs, b = complete_seqs, 
-                                  method = "osa", useBytes = FALSE,
-                                  nthread = 1 ) # lv lcs
-    rownames(dist_seq) <- rownames(this_seq)
-    
-    ## Convert to a distance object
-    dist_seq <- as.dist(m = dist_seq, diag = TRUE, upper = TRUE)
-    ## Clustering
-    hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
-    
-    row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
-  } 
-  else{ 
-    row_order <- c( row_order, rownames( this_seq ) ) 
-  }
-}
 
-# length(row_order)
-## Reorder by new clustering
-data_ht <- data_ht[ row_order, ]
+
+# 
+# row_order <- vector()
+# cat("Clustering by sequence per ZF array ... \n")
+# for( cluster in unique(data_ht$cluster)){
+#   
+#   cat(cluster)
+#   cat("\n")
+#   # cluster <- "zfs:1_6"
+#   
+#   first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
+#   second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
+#   
+#   ## https://stackoverflow.com/questions/35540059/how-to-insert-a-distance-matrix-into-r-and-run-hierarchical-clustering
+#   
+#   start_pos <- ( 3*(max_ZF-second_ZF) )
+#   end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
+#   
+#   ## Clustering with the positions that are recognized with the ZF array
+#   this_seq_cols <- as.character( start_pos:end_pos )
+#   
+#   ## Clustering using all the positions in the metaPFM hit
+#   this_seq_cols <- as.character( 0:(max_ZF*3) )
+# 
+#   
+#   
+#   this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
+#   
+#   
+#   if( nrow(this_seq) >= 2 ){
+#   
+#     ## Concatenate base columns into a sequence vector
+#     complete_seqs <- apply(this_seq, 1, function(x) paste(x, collapse = ""))
+#     names( complete_seqs ) <- rownames(this_seq)
+#     
+#     ## Calc. sequence distance matrix
+#     dist_seq <- stringdistmatrix( a = complete_seqs, b = complete_seqs, 
+#                                   method = "osa", useBytes = FALSE,
+#                                   nthread = 1 ) # lv lcs
+#     rownames(dist_seq) <- rownames(this_seq)
+#     
+#     ## Convert to a distance object
+#     dist_seq <- as.dist(m = dist_seq, diag = TRUE, upper = TRUE)
+#     ## Clustering
+#     hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
+#     
+#     row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
+#   } 
+#   else{ 
+#     row_order <- c( row_order, rownames( this_seq ) ) 
+#   }
+# }
+# 
+# # length(row_order)
+# ## Reorder by new clustering
+# data_ht <- data_ht[ row_order, ]
 
 #####
 
 
 
 ######################################### Distance from summit to motif annotation  #######
-read_length <- stri_length( gsub("N", "", data_ht$Sequence[1] ) )
 
-data_ht$summit_dist <- ( data_ht$prefix + read_length/2 ) - ( length(seq_cols)/2 )
 
 
 score_lim <- max( c( abs( max(data_ht$summit_dist) ), abs( min(data_ht$summit_dist) ) ) )
