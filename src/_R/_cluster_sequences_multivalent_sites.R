@@ -1,3 +1,5 @@
+library(readr)
+library(ggseqlogo)
 library(stringdist)
 library(stringr) 
 library(assertr)
@@ -154,7 +156,11 @@ option_list = list(
 
   make_option(c("-q", "--footprint_tab"), type="character",
             default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
-              help="")    
+              help="")
+  
+  # make_option(c("-r", "--PFMs"), type="character",
+  #           default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_opt_PFM.txt",
+  #             help="")   
   );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -174,6 +180,73 @@ opt$meta_pfm_len <- as.integer( opt$meta_pfm_len )
 # constants
 ## Number of zinc fingers
 nzfs <- as.integer(opt$meta_pfm_len)/3
+#####
+
+
+
+################################################################## Read PWM ####
+# read_PFMs <- function( PFMs_filename ){
+# 
+#   # PFMs_filename <- opt$PFMs
+#   PFMs <- read_lines( file = PFMs_filename)
+#   PFM_names <- PFMs[ grepl( pattern = "Motif", x = PFMs ) ]
+#   PFM_names <- gsub( "Motif\t", "", PFM_names )
+#   PFM_names <- gsub( "\\|opt", "", PFM_names )
+# 
+# 
+#   PFMs <- PFMs[ ! grepl( pattern = "TF\tUnknown", x = PFMs ) ]
+#   PFMs <- PFMs[ ! grepl( pattern = "Gene", x = PFMs ) ]
+#   PFMs <- PFMs[ ! grepl( pattern = "Motif", x = PFMs ) ]
+#   PFMs <- PFMs[ ! grepl( pattern = "Family", x = PFMs ) ]
+#   PFMs <- PFMs[ ! grepl( pattern = "Species", x = PFMs ) ]
+#   PFMs <- PFMs[ ! grepl( pattern = "TF Name", x = PFMs ) ]
+#   PFMs <- PFMs[ ! PFMs == "" ]
+# 
+#   PFMs[ PFMs == "Pos\tA\tC\tG\tT" ] <- "SEP"
+# 
+#   split_PFMs <- strsplit(paste( PFMs, collapse = "\n" ), split = "SEP\n",
+#                          fixed = FALSE, perl = FALSE, useBytes = FALSE)
+# 
+#   split_PFMs <- unlist(split_PFMs)
+#   split_PFMs <- split_PFMs[ !split_PFMs == "" ]
+# 
+#   PFMs_list <- list()
+# 
+#   for (i in 1:length(PFM_names)) {
+#     tmp <- read.table(  text=split_PFMs[i],col.names=c("Pos","A", "C", "G", "T"))
+#     tmp <- tmp[, c("A", "C", "G", "T")]
+#     tmp$A <- as.numeric(tmp$A)
+#     tmp$C <- as.numeric(tmp$C)
+#     tmp$G <- as.numeric(tmp$G)
+#     tmp$`T` <- as.numeric(tmp$`T`)
+# 
+#     PFMs_list[[i]] <- as.data.frame(tmp)
+#   }
+# 
+#   return( list( PFM_names, PFMs_list)  )
+# }
+# 
+# 
+# PFMs <- read_PFMs( PFMs_filename = opt$PFMs )
+# 
+# 
+# 
+# 
+# a <- ggseqlogo(data = t( as.data.frame(PFMs[[2]][1]) ), seq_type ="dna" ) + ggtitle(PFMs[[1]][1] )
+# 
+# 
+# b <- list(a,a,a)
+# 
+# library(patchwork)
+# 
+# 
+# c <- ggpubr::ggarrange(plotlist = b, ncol = 1 )
+# 
+# 
+# ggsave(filename = paste0("/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/test.pdf"),
+#        plot = c, width = 5, height = 10)
+
+
 #####
 
 
@@ -514,13 +587,18 @@ if ( (opt$computeMatrix != "default_none") ) {
 
 
 ############################################################### Clustering #####
+
+data_ht <- data_ht[ order(data_ht$summit_dist, decreasing = TRUE),]
+
+
+
 rownames(data_ht) <- data_ht$Gene
 data_ht$sum <- rowSums(data_ht[,zf_cols])
-data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
+# data_ht <- data_ht[ order(data_ht$sum, decreasing = TRUE), ]
 
 
-data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
-data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+# data_ht <- data_ht[ order(data_ht$second_ZF, decreasing = FALSE),]
+# data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
 
 
 data_ht$mean_ZF <- ( data_ht$first_ZF + data_ht$second_ZF) / 2
@@ -530,60 +608,66 @@ data_ht <- data_ht[ order(data_ht$mean_ZF, decreasing = FALSE),]
 
 max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
-row_order <- vector()
-cat("Clustering by sequence per ZF array ... \n")
-for( cluster in unique(data_ht$cluster)){
-  
-  cat(cluster)
-  cat("\n")
-  # cluster <- "zfs:1_6"
-  
-  first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
-  second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
-  
-  # first_ZF
-  # second_ZF
-  
-  ## https://stackoverflow.com/questions/35540059/how-to-insert-a-distance-matrix-into-r-and-run-hierarchical-clustering
-  
-  start_pos <- ( 3*(max_ZF-second_ZF) )
-  end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
-  
-  this_seq_cols <- as.character( start_pos:end_pos )
-  
-  ## Clustering using all the positions in the metaPFM hit
-  # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ 21:( 20 + 3*nzfs ) ] ]
-  
-  ## Clustering with the positions that are recognized with the ZF array
-  this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
-  
-  if( nrow(this_seq) >= 2 ){
-  
-    ## Concatenate base columns into a sequence vector
-    complete_seqs <- apply(this_seq, 1, function(x) paste(x, collapse = ""))
-    names( complete_seqs ) <- rownames(this_seq)
-    
-    ## Calc. sequence distance matrix
-    dist_seq <- stringdistmatrix( a = complete_seqs, b = complete_seqs, 
-                                  method = "osa", useBytes = FALSE,
-                                  nthread = 1 ) # lv lcs
-    rownames(dist_seq) <- rownames(this_seq)
-    
-    ## Convert to a distance object
-    dist_seq <- as.dist(m = dist_seq, diag = TRUE, upper = TRUE)
-    ## Clustering
-    hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
-    
-    row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
-  } 
-  else{ 
-    row_order <- c( row_order, rownames( this_seq ) ) 
-  }
-}
 
-length(row_order)
-## Reorder by new clustering
-data_ht <- data_ht[ row_order, ]
+
+
+
+data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+
+# row_order <- vector()
+# cat("Clustering by sequence per ZF array ... \n")
+# for( cluster in unique(data_ht$cluster)){
+#   
+#   cat(cluster)
+#   cat("\n")
+#   # cluster <- "zfs:1_6"
+#   
+#   first_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "first_ZF"  ][1] )
+#   second_ZF <- as.integer( data_ht[ data_ht$cluster == cluster, "second_ZF"  ][1] )
+#   
+#   # first_ZF
+#   # second_ZF
+#   
+#   ## https://stackoverflow.com/questions/35540059/how-to-insert-a-distance-matrix-into-r-and-run-hierarchical-clustering
+#   
+#   start_pos <- ( 3*(max_ZF-second_ZF) )
+#   end_pos <- start_pos + 3*( second_ZF-first_ZF+1 )-1
+#   
+#   this_seq_cols <- as.character( start_pos:end_pos )
+#   
+#   ## Clustering using all the positions in the metaPFM hit
+#   # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ 21:( 20 + 3*nzfs ) ] ]
+#   
+#   ## Clustering with the positions that are recognized with the ZF array
+#   this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
+#   
+#   if( nrow(this_seq) >= 2 ){
+#   
+#     ## Concatenate base columns into a sequence vector
+#     complete_seqs <- apply(this_seq, 1, function(x) paste(x, collapse = ""))
+#     names( complete_seqs ) <- rownames(this_seq)
+#     
+#     ## Calc. sequence distance matrix
+#     dist_seq <- stringdistmatrix( a = complete_seqs, b = complete_seqs, 
+#                                   method = "osa", useBytes = FALSE,
+#                                   nthread = 1 ) # lv lcs
+#     rownames(dist_seq) <- rownames(this_seq)
+#     
+#     ## Convert to a distance object
+#     dist_seq <- as.dist(m = dist_seq, diag = TRUE, upper = TRUE)
+#     ## Clustering
+#     hclust_seq <- hclust( d = dist_seq, method = "ward.D2", members = NULL )
+#     
+#     row_order <- c(row_order, hclust_seq$labels[hclust_seq$order] )
+#   } 
+#   else{ 
+#     row_order <- c( row_order, rownames( this_seq ) ) 
+#   }
+# }
+# 
+# length(row_order)
+# ## Reorder by new clustering
+# data_ht <- data_ht[ row_order, ]
 
 
 #####
@@ -714,7 +798,7 @@ if ( (opt$computeMatrix != "default_none") ) {
                                       show_column_names = FALSE,
                                       show_row_names  =  FALSE,
                                       col = list_of_col_fun[[i]],
-                                      name = paste0( "log10_", bigwig_units[[i]], "+1" ),
+                                      name = paste0( "log10_", bigwig_units[[i]] ),
                                       column_title = bigwig_labels[[i]],
                                       border_gp = gpar(col = "black"),
                                       heatmap_legend_param = list(legend_direction = "horizontal"))
@@ -748,7 +832,7 @@ if( opt$footprint_tab != "default_none" ){
                                      show_column_names =  FALSE,
                                      show_row_names  =  FALSE,
                                      col = col_fun_foot,
-                                     name = "log10_footprint_counts+1",
+                                     name = "log10_footprint_counts",
                                      column_title = "footprint_counts (3' and 5')",
                                      border_gp = gpar(col = "black"),
                                      heatmap_legend_param = list(legend_direction = "horizontal") )
@@ -794,6 +878,19 @@ write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ),
 #####
 
 
+
+# p_ht_1 <- grid.grabExpr( draw( all_htm, ht_gap = unit( 0.25, "cm" ), main_heatmap = "binding_score",
+#                          column_title = paste0( opt$title, "\nn = ", nrow(data_ht)),
+#                          merge_legends = FALSE,
+#                          heatmap_legend_side = "right", annotation_legend_side = "right" ) )
+# 
+# library(cowplot)
+# 
+# pdf( file = paste0(opt$out_prefix, "aligned_heatmap_ZF_and_seq_with_motifs.pdf"), 
+#      width = 22 + add_width, height = 20 )
+# 
+# plot_grid(c, p_ht_1, ncol = 2, nrow = 1, align = "v")
+# dev.off()
 
 ############################################################################################################# ##
 
