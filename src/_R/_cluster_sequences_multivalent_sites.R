@@ -96,7 +96,7 @@ plot_averageogram <- function( data, label, units, filename ){
 option_list = list(
 
   make_option(c("-a", "--out_dir"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -108,30 +108,30 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
               help=""),
 
   make_option(c("-f", "--align_num"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
               help=""),
 
   make_option(c("-g", "--title"), type="character",
-              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF20_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_16501_CTCF_ChIP1_S368_pulldown_bw_cov_computeMatrix_out.tab.gz",
+              default="default_none",
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
               help=""),
     make_option(c("-k", "--experiment_name"), type="character",
-              default="CTCF_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF20_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
@@ -143,19 +143,19 @@ option_list = list(
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
               help=""),
   
   make_option(c("-o", "--meta_pfm_len"), type="character",
-              default="33",
+              default="23",
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
               help=""),
 
   make_option(c("-q", "--footprint_tab"), type="character",
-            default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/CTCF_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
+            default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
               help="")
   
   # make_option(c("-r", "--PFMs"), type="character",
@@ -358,11 +358,11 @@ data_ht$utilization_proportion <- ( rowSums(data_ht[,zf_cols]!=0) ) / length(zf_
 
 
 ################################################### Read original peak #########
-cat("Reading Original bed file with score ...\n")
+cat("Reading aligned bed ...\n")
 aligned_bed <- fread( opt$aligned_bed, sep = "\t", data.table = T, header = F )
 aligned_bed$coord_meta <- aligned_bed$V2 + (aligned_bed$V3 - aligned_bed$V2)/2
-aligned_bed <- aligned_bed[, c("coord_meta", "V4", "V5")]
-colnames(aligned_bed) <- c("coord_meta", "Gene", "cluster")
+aligned_bed <- aligned_bed[, c("coord_meta", "V4", "V5", "V6")]
+colnames(aligned_bed) <- c("coord_meta", "Gene", "cluster", "strand")
 aligned_bed$cluster <- gsub("-", "_", aligned_bed$cluster)
 
 tmp <- gsub("zfs:", "", aligned_bed$cluster )
@@ -371,6 +371,8 @@ aligned_bed$first_ZF <- as.integer( tmp$V1 )
 aligned_bed$second_ZF <- as.integer( tmp$V2 )
 
 
+
+cat("Reading Original bed file with score ...\n")
 original_bed <- as.data.frame(fread( opt$input_bed, sep = "\t", data.table = T, header = F ))
 
 if( ncol(original_bed) == 5) {
@@ -388,23 +390,15 @@ original_bed <- original_bed[ , !colnames(original_bed) %in% c("chr","start", "s
 summit_dist <- merge(x=original_bed, y = aligned_bed, by = "Gene", all = TRUE)
 summit_dist$summit_dist <- summit_dist$coord_meta - summit_dist$coord_summit
 
+## Invert distance to motif if the match is in the reverse strand, 
+##   when we visualize the footprint the strand matters 
+summit_dist[ summit_dist$strand == "+", "summit_dist"] <- 
+  summit_dist[ summit_dist$strand == "+", "summit_dist"] * -1
+
 
 data_ht <- merge(x=data_ht, y = summit_dist, by = "Gene", all.x = TRUE)
 
 
-
-### Create a color scale if there is a summit score
-# if (has_score) {
-#   diff_tmp <-  abs( max( data_ht[, "score"] ) -  min( data_ht[, "score"] ) )
-#   mid <- min( data_ht[, "score"] ) + diff_tmp/2
-#   
-#   col_fun_score <- colorRamp2( c( min(data_ht[, "score"])-1e-6, 
-#                                   mid, 
-#                                   max(data_ht[, "score"])+1e-6),
-#                                c( "white", "red", "black" ) )
-#   
-#   rm(mid, diff_tmp)
-# }
 
 rm(summit_dist, original_bed, aligned_bed)
 #####
@@ -415,6 +409,12 @@ rm(summit_dist, original_bed, aligned_bed)
 if( opt$footprint_tab != "default_none" ){
   
   foot_counts <- as.data.frame( fread( file = opt$footprint_tab, skip = 1, sep = "\t" ) )
+  
+  ### TEST
+  # foot_counts <- foot_counts[ foot_counts$V6 == "-", ]
+  ##
+  
+  
   foot_counts <- foot_counts[, c( 4, 7:ncol( foot_counts ) ) ]
   foot_counts[ is.na( foot_counts ) ] <- 0
   
@@ -434,9 +434,9 @@ if( opt$footprint_tab != "default_none" ){
   diff_tmp <-  abs( max( foot_counts[, footprint_cols] ) -  min( foot_counts[, footprint_cols] ) )
   mid <- min( foot_counts[, footprint_cols] ) + diff_tmp/2
   
-  col_fun_foot <- colorRamp2( c( min(foot_counts[, footprint_cols])-1e-6, 
-                                  mid, 
-                                  max(foot_counts[, footprint_cols])+1e-6),
+  col_fun_foot <- colorRamp2( c( log10(0 + 1), 
+                                 log10(10 + 1), 
+                                 max(foot_counts[, footprint_cols]) ),
                                c( "white", "red", "black" ) )
   
   rm(mid, diff_tmp)
@@ -455,6 +455,9 @@ if( opt$footprint_tab != "default_none" ){
   
   zf3_column_ha <- HeatmapAnnotation( ZFs = zf_annotations, col = list(ZFs = anno_zf_col_fun), 
                                       na_col = "white" )
+  
+  
+  
   
   data_ht <- merge(x = data_ht, y = foot_counts, by = "Gene", all.x = TRUE )
 }
@@ -612,7 +615,7 @@ max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
 
 
-data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
+# data_ht <- data_ht[ order(data_ht$first_ZF, decreasing = FALSE),]
 
 # row_order <- vector()
 # cat("Clustering by sequence per ZF array ... \n")
