@@ -1,3 +1,5 @@
+library(ggh4x)
+library(patchwork)
 library(readr)
 library(ggseqlogo)
 library(stringdist)
@@ -11,9 +13,65 @@ suppressPackageStartupMessages(library(ComplexHeatmap))
 library(gplots)
 library(ggplot2)
 library(optparse)
+library(cowplot)
+library(gridExtra)
+
 set.seed(1)
 
 ################################################################# Functions ####
+
+read_PFMs <- function( PFMs_filename ){
+  
+  # PFMs_filename <- opt$PFMs
+  PFMs <- read_lines( file = PFMs_filename)
+  PFM_names <- PFMs[ grepl( pattern = "Motif", x = PFMs ) ]
+  PFM_names <- gsub( "Motif\t", "", PFM_names )
+  PFM_names <- unlist( PFM_names )
+  # PFM_names <- gsub( "\\|opt", "", PFM_names )
+  # PFM_names
+
+  PFMs <- PFMs[ ! PFMs == "" ]
+  PFMs <- PFMs[ ! grepl( pattern = "TF\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "TF Name\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Gene\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Motif\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Family\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Species\t", x = PFMs ) ]
+  
+  
+
+  PFMs[ PFMs == "Pos\tA\tC\tG\tT" ] <- "SEP"
+
+  split_PFMs <- strsplit(paste( PFMs, collapse = "\n" ), split = "SEP\n",
+                         fixed = FALSE, perl = FALSE, useBytes = FALSE)
+
+  split_PFMs <- unlist(split_PFMs)
+  split_PFMs <- split_PFMs[ !split_PFMs == "" ]
+
+  PFMs_list <- list()
+  
+  
+  for (i in 1:length(PFM_names)) {
+    
+    # i <- 1
+    tmp <- read.table(  text=split_PFMs[i],col.names=c("Pos","A", "C", "G", "T"))
+    tmp <- tmp[, c("A", "C", "G", "T")]
+    tmp$A <- as.numeric(tmp$A)
+    tmp$C <- as.numeric(tmp$C)
+    tmp$G <- as.numeric(tmp$G)
+    tmp$`T` <- as.numeric(tmp$`T`)
+
+    PFMs_list[[PFM_names[i]]] <- as.data.frame(tmp)
+    
+  }
+
+  return( PFMs_list  )
+}
+
+
+
+
+
 # The function for calculating hamming distance. It is taken from: https://johanndejong.wordpress.com/2015/10/02/faster-hamming-distance-in-r-2/
 hamming <- function(X) {
   uniqs <- unique(as.vector(X))
@@ -34,7 +92,7 @@ hamming_dist <- function(x, y){
   }
 
 
-get_seq_col_split <- function( seq_cols, nzfs, bin_length, spamming = "motif" ){
+get_seq_col_split <- function( seq_cols, nzfs, bin_length, spamming = "motif", flanking_len ){
   # bin_length <- 10
   ref_chars <- c("b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n",
                  "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "aa", "ab",
@@ -52,10 +110,10 @@ get_seq_col_split <- function( seq_cols, nzfs, bin_length, spamming = "motif" ){
     
     seq_bins_extra <- rep_len(x = "y", length.out =  seq_bins_extra_len )
     
-    col_split <- c( rep_len(x = "a", length.out = 20), 
+    col_split <- c( rep_len(x = "a", length.out = flanking_len), 
                     seq_bins_main,
                     seq_bins_extra,
-                    rep_len(x = "z", length.out = 21) )
+                    rep_len(x = "z", length.out = (flanking_len+1) ) )
     
   }
   # ifelse( spamming == "whole"){
@@ -96,7 +154,7 @@ plot_averageogram <- function( data, label, units, filename ){
 option_list = list(
 
   make_option(c("-a", "--out_dir"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites",
               help=""),
   
   make_option(c("-b", "--cutoff"), type="character",
@@ -108,19 +166,19 @@ option_list = list(
               help=""),
 
   make_option(c("-d", "--weighted_PFM"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/ZNF853_top_2000_RC_range_25_repeats_FALSE_graphs_weighted_PFM_scores.txt",
               help=""),
 
   make_option(c("-e", "--ZF_binding_scores"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/ZNF853_top_2000_RC_range_25_repeats_FALSE_graphs_ZF_binding_scores.txt",
               help=""),
 
   make_option(c("-f", "--align_num"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF853_top_2000_RC_range_25_repeats_FALSE_aligned_sequences_numeric_mx.txt",
               help=""),
 
   make_option(c("-g", "--title"), type="character",
-              default="ZNF20_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF853_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-i", "--computeMatrix"), type="character",
@@ -128,10 +186,10 @@ option_list = list(
               help=""),
 
   make_option(c("-j", "--repeats_info"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF853_top_2000_RC_range_25_repeats_FALSE_aligned_positions_overlapping_repeats.bed",
               help=""),
     make_option(c("-k", "--experiment_name"), type="character",
-              default="ZNF20_top_2000_RC_range_25_repeats_FALSE",
+              default="ZNF853_top_2000_RC_range_25_repeats_FALSE",
               help=""),
 
   make_option(c("-l", "--bw_labels"), type="character",
@@ -143,24 +201,28 @@ option_list = list(
               help=""),
   
   make_option(c("-n", "--input_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/ZNF20_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/ZNF853_top_2000_RC_range_25_repeats_FALSE_input_coordinates.bed",
               help=""),
   
   make_option(c("-o", "--meta_pfm_len"), type="character",
-              default="23",
+              default="15",
               help=""),
   
   make_option(c("-p", "--aligned_bed"), type="character",
-              default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
+              default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF853_top_2000_RC_range_25_repeats_FALSE_aligned_positions_spams_metaPFM.bed",
               help=""),
 
   make_option(c("-q", "--footprint_tab"), type="character",
-            default="~/repos/tools/RCADEEM/out/ZNF20_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF20_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
-              help="")
+            default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/align_multivalent_sites/ZNF853_top_2000_RC_range_25_repeats_FALSE_footprint_5_and_3_prime.tab.gz",
+              help=""),
   
-  # make_option(c("-r", "--PFMs"), type="character",
-  #           default="~/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/CTCF_top_2000_RC_range_25_repeats_FALSE_opt_PFM.txt",
-  #             help="")   
+  make_option(c("-r", "--PFMs"), type="character",
+            default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/ZNF853_top_2000_RC_range_25_repeats_FALSE_PFM.txt",
+              help=""),
+
+  make_option(c("-s", "--PFMs_report"), type="character",
+            default="~/repos/tools/RCADEEM/out/ZNF853_top_2000_RC_range_25_repeats_FALSE/ZNF853_top_2000_RC_range_25_repeats_FALSE_report.txt",
+              help="")    
   );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -184,73 +246,6 @@ nzfs <- as.integer(opt$meta_pfm_len)/3
 
 
 
-################################################################## Read PWM ####
-# read_PFMs <- function( PFMs_filename ){
-# 
-#   # PFMs_filename <- opt$PFMs
-#   PFMs <- read_lines( file = PFMs_filename)
-#   PFM_names <- PFMs[ grepl( pattern = "Motif", x = PFMs ) ]
-#   PFM_names <- gsub( "Motif\t", "", PFM_names )
-#   PFM_names <- gsub( "\\|opt", "", PFM_names )
-# 
-# 
-#   PFMs <- PFMs[ ! grepl( pattern = "TF\tUnknown", x = PFMs ) ]
-#   PFMs <- PFMs[ ! grepl( pattern = "Gene", x = PFMs ) ]
-#   PFMs <- PFMs[ ! grepl( pattern = "Motif", x = PFMs ) ]
-#   PFMs <- PFMs[ ! grepl( pattern = "Family", x = PFMs ) ]
-#   PFMs <- PFMs[ ! grepl( pattern = "Species", x = PFMs ) ]
-#   PFMs <- PFMs[ ! grepl( pattern = "TF Name", x = PFMs ) ]
-#   PFMs <- PFMs[ ! PFMs == "" ]
-# 
-#   PFMs[ PFMs == "Pos\tA\tC\tG\tT" ] <- "SEP"
-# 
-#   split_PFMs <- strsplit(paste( PFMs, collapse = "\n" ), split = "SEP\n",
-#                          fixed = FALSE, perl = FALSE, useBytes = FALSE)
-# 
-#   split_PFMs <- unlist(split_PFMs)
-#   split_PFMs <- split_PFMs[ !split_PFMs == "" ]
-# 
-#   PFMs_list <- list()
-# 
-#   for (i in 1:length(PFM_names)) {
-#     tmp <- read.table(  text=split_PFMs[i],col.names=c("Pos","A", "C", "G", "T"))
-#     tmp <- tmp[, c("A", "C", "G", "T")]
-#     tmp$A <- as.numeric(tmp$A)
-#     tmp$C <- as.numeric(tmp$C)
-#     tmp$G <- as.numeric(tmp$G)
-#     tmp$`T` <- as.numeric(tmp$`T`)
-# 
-#     PFMs_list[[i]] <- as.data.frame(tmp)
-#   }
-# 
-#   return( list( PFM_names, PFMs_list)  )
-# }
-# 
-# 
-# PFMs <- read_PFMs( PFMs_filename = opt$PFMs )
-# 
-# 
-# 
-# 
-# a <- ggseqlogo(data = t( as.data.frame(PFMs[[2]][1]) ), seq_type ="dna" ) + ggtitle(PFMs[[1]][1] )
-# 
-# 
-# b <- list(a,a,a)
-# 
-# library(patchwork)
-# 
-# 
-# c <- ggpubr::ggarrange(plotlist = b, ncol = 1 )
-# 
-# 
-# ggsave(filename = paste0("/home/ahcorcha/repos/tools/RCADEEM/out/CTCF_top_2000_RC_range_25_repeats_FALSE/test.pdf"),
-#        plot = c, width = 5, height = 10)
-
-
-#####
-
-
-
 ############################################################# Read Sequence ####
 # read the sequence
 cat("Reading the sequence information ...\n")
@@ -263,11 +258,12 @@ seq <- seq[ apply(seq[,3:ncol(seq)], 1, function(x) sum(x==-1) ) == 0, ]
 # Zoom into the -20 +20 region around the metaPFM hit
 # ht_seq <- seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)]
 start <- 3+as.integer(seq_len/2) - ceiling( as.integer(opt$meta_pfm_len)/2 )
-ht_seq <- seq[,( start - 20 ):( start + nzfs * 3 + 20 ) ]
+flanking_len <- 20
+ht_seq <- seq[,( start - flanking_len ):( start + nzfs * 3 + flanking_len ) ]
 
 
 # seq_cols <- paste0( "seq_", (-20):(nzfs*3+20) )
-seq_cols <- paste0( (-20):(nzfs*3+20) )
+seq_cols <- paste0( (-flanking_len):(nzfs*3+flanking_len) )
 colnames(ht_seq) <- seq_cols
 ht_seq$Gene <- seq$Gene
 
@@ -397,6 +393,8 @@ summit_dist[ summit_dist$strand == "+", "summit_dist"] <-
 
 
 data_ht <- merge(x=data_ht, y = summit_dist, by = "Gene", all.x = TRUE)
+
+# data_ht <- data_ht[ data_ht$strand == "-", ]
 
 
 
@@ -639,7 +637,7 @@ max_ZF <- max( as.integer( data_ht$second_ZF ) )
 #   this_seq_cols <- as.character( start_pos:end_pos )
 #   
 #   ## Clustering using all the positions in the metaPFM hit
-#   # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ 21:( 20 + 3*nzfs ) ] ]
+#   # this_seq <- data_ht[ data_ht$cluster == cluster, seq_cols[ (flanking_len+1):( flanking_len + 3*nzfs ) ] ]
 #   
 #   ## Clustering with the positions that are recognized with the ZF array
 #   this_seq <- data_ht[ data_ht$cluster == cluster, this_seq_cols ]
@@ -678,9 +676,9 @@ max_ZF <- max( as.integer( data_ht$second_ZF ) )
 
 
 ######################################################### ZF annotations #######
-zf_annotations <- c( rep_len( x = NA,length.out = 20),
+zf_annotations <- c( rep_len( x = NA,length.out = flanking_len),
                      sort(rep_len( x = 1:nzfs, length.out = 3*nzfs), decreasing = TRUE),
-                     rep_len( x = NA,length.out = 21) )
+                     rep_len( x = NA,length.out = (flanking_len+1)) )
 
 anno_zf_col_fun = colorRamp2(c(1, nzfs), c("grey", "black"))
 
@@ -769,7 +767,7 @@ htm_usage <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, "utilization_proporti
 
 
 
-col_split <- get_seq_col_split( seq_cols, nzfs, bin_length = 10 )
+col_split <- get_seq_col_split( seq_cols, nzfs, bin_length = 10, flanking_len = flanking_len )
 
 htm_seq <- ComplexHeatmap::Heatmap( as.matrix( data_ht[, seq_cols] ),
                                     column_split = col_split,
@@ -843,7 +841,9 @@ if( opt$footprint_tab != "default_none" ){
 }
 
 
-all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation + htm_rep
+# all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation + htm_rep
+## Don't include repeats panel
+all_htm <- htm_zf + htm_usage + htm_seq + summit_annotation
 
 
 add_width <- 0
@@ -882,6 +882,143 @@ write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ),
 
 
 
+############################################# Write seed and optimized PFMs ####
+## Read PFM report
+get_max_cumulative_per_pos <- function(mat, direction = "-"){
+  
+  if ( direction == "+" ){ mat[ mat < 0] <- 0 }
+  if ( direction == "-" ){ mat[ mat > 0] <- 0 }
+  
+  return( max(rowSums( abs( mat ) ) ) )
+}
+
+PFMs <- read_PFMs( PFMs_filename = opt$PFMs )
+
+## Get max number of PFM positions
+max_len <- list()
+for (i in 1:length(PFMs) ) { max_len[[i]] <- nrow(PFMs[[i]] ) }
+max_len <- as.integer( max(unlist(max_len)) )
+
+
+
+PFM_report <- as.data.frame( read.csv(file = opt$PFMs_report, sep = "\t" ) )
+PFM_report <- PFM_report[ PFM_report$MOTIF != "meta-PFM", ]
+
+## Add cluster (zfs used)
+PFM_report_ZFs <- str_split_fixed(str_split_fixed(PFM_report$MOTIF, ":", 2)[,2], "-", 2)
+PFM_report$name <- paste0( "zfs:", PFM_report_ZFs[,1], "_", PFM_report_ZFs[,2] )
+
+
+
+i <- 1
+motif_list <- list()
+for ( cluster in unique( data_ht$cluster ) ) {
+  
+  # cluster <- "zfs:1_3"
+  
+  pearson_r <- PFM_report[ PFM_report$name == cluster, "CORRELATION"]
+  pval <- PFM_report[ PFM_report$name == cluster, "CORRELATION_P"]
+  
+  pearson_r <- round(pearson_r, digits = 2)
+  pval <- round(pval, digits = 7)
+  
+  
+  cluster_id <- PFM_report[ PFM_report$name == cluster, "MOTIF"]
+  cluster_id_opt <- paste0( cluster_id, "|opt" ) 
+  
+  PFM_seed <- PFMs[[cluster_id]]
+  PFM_opt <- PFMs[[ cluster_id_opt ]]
+  
+  PFM_seed <- log10(PFM_seed*4)
+  PFM_opt <- log10(PFM_opt*4)
+  
+  seed_pos_lim <- get_max_cumulative_per_pos( PFM_seed, "+" )
+  seed_neg_lim <- get_max_cumulative_per_pos( PFM_seed, "-" )
+  opt_pos_lim <- get_max_cumulative_per_pos( PFM_opt, "+" )
+  opt_neg_lim <- get_max_cumulative_per_pos( PFM_opt, "-" )
+  
+  
+  PFM_seed[ PFM_seed > 0 ] <- PFM_seed[ PFM_seed > 0 ] / seed_pos_lim
+  PFM_seed[ PFM_seed < 0 ] <- PFM_seed[ PFM_seed < 0 ] / seed_neg_lim
+  
+  PFM_opt[ PFM_opt > 0 ] <- PFM_opt[ PFM_opt > 0 ] / opt_pos_lim
+  PFM_opt[ PFM_opt < 0 ] <- PFM_opt[ PFM_opt < 0 ] / opt_neg_lim
+  
+  
+  
+  
+  p_seed <- ggseqlogo(data = t( PFM_seed ), method ="custom", seq_type = "dna" ) + 
+    ggtitle( cluster_id ) +
+    labs(subtitle = paste0( "Pearson correlation: ", pearson_r, 
+                            "\n                  p-value: ", pval)) +
+    ggh4x::force_panelsizes(rows = unit(3, "cm"), cols = unit( 0.75 * nrow(PFM_seed), "cm"), respect = TRUE) +
+    theme( plot.background = NULL, plot.margin = unit(c(0,0,0,0), "cm"),
+      plot.title = element_text(face="bold"),
+          panel.border = element_rect(colour = "grey", fill=NA, size=0.5),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() ) +
+    annotate("rect", alpha = 0.75, fill = "white",
+             xmin = 0.5, xmax = nrow(PFM_seed)+0.5, ymin = 0, ymax = -1) +
+    scale_y_continuous(label = c(-round(seed_neg_lim, 2), 0, round(seed_pos_lim, 2)),  
+                       breaks = c(-1, 0, 1), position = "left" ) + 
+    ylab("Seed") +
+    NULL
+  
+  
+  p_opt <- ggseqlogo(data = t( PFM_opt ), method ="custom", seq_type = "dna" ) + 
+    # ggtitle( paste0( "Optimized") ) +
+    ggh4x::force_panelsizes(rows = unit(3, "cm"), cols = unit(0.75 * nrow(PFM_seed), "cm"), respect = TRUE) +
+    theme( plot.background = NULL, plot.margin = unit(c(0,0,0,0), "cm"), 
+      panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    annotate("rect", alpha = 0.75, fill = "white",
+             xmin = 0.5, xmax = nrow(PFM_opt)+0.5, ymin = 0, ymax = -1) +
+    scale_y_continuous(label = c(-round(opt_neg_lim, 2), 0, round(opt_pos_lim, 2)), 
+                       breaks = c(-1, 0, 1), position = "left" ) + 
+    ylab("Optimized") +
+    NULL
+  
+  motif_list[[i]] <- gridExtra::arrangeGrob(grobs = list(p_seed, p_opt), 
+                                            name = "arrange", nrow = 2, ncol = 1, 
+                                            padding = unit(0, "line")  )
+  
+  i <- i + 1
+  }
+
+p_motif <- cowplot::plot_grid( plotlist = motif_list, 
+                               align = "v", axis = "l",
+                               nrow = length(motif_list), ncol = 1, 
+                               greedy = FALSE )
+
+ggsave(filename = paste0( opt$out_prefix, "motifs.pdf"),
+      plot = p_motif, 
+      width =  9 + max_len * 0.4,
+      height = 10 * length(motif_list),
+      units = "cm", limitsize = FALSE )
+
+#####
+
+
+
+
+############################################################################################################# ##
+# a <- data_ht[ data_ht$cluster == "zfs:1_5", ]
+# 
+# d <- data_ht[ data_ht$Gene == "chr18:53382641-53382691",  ]
+# b <- as.data.frame(t( d[, footprint_cols] ))
+# 
+# colnames(b) <- "footprint_count"
+# b$pos <- 1:nrow(b)
+# 
+# pb <- ggplot(b, aes(x = pos, y = footprint_count)) + geom_line()
+# pb
+# ggsave( filename = paste0( opt$out_prefix, "histogram_test.pdf" ), plot = pb )
+############################################################################################################# ##
+
+
+
+
+############################################################################################################# ##
 # p_ht_1 <- grid.grabExpr( draw( all_htm, ht_gap = unit( 0.25, "cm" ), main_heatmap = "binding_score",
 #                          column_title = paste0( opt$title, "\nn = ", nrow(data_ht)),
 #                          merge_legends = FALSE,
@@ -1064,7 +1201,7 @@ if (nmotifs > 1) {
   
   jpeg(file=paste0(opt$out_prefix,"clustered.sequence_heatmap.jpg"),
        width=1000,height=1000)
-  dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-20):(3+as.integer(seq_len/2)+nzfs*3+20)] ), 
+  dendrogram <- heatmap.2( as.matrix( seq[,(3+as.integer(seq_len/2)-flanking_len):(3+as.integer(seq_len/2)+nzfs*3+flanking_len)] ), 
                            hclustfun = function(x) hclust(x,method =  "mcquitty"), 
                            distfun = function(x) distmx, margins=c(4,2), 
                            Colv = F, 

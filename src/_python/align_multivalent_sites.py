@@ -28,6 +28,11 @@ def align_multivalent_sites( args, log ):
 
     align_pos_all_PFM = args.OUT_ALIGN_PREFIX + "aligned_positions_spams_metaPFM.bed"
     overlapped_repeats = args.OUT_ALIGN_PREFIX + "aligned_positions_overlapping_repeats.bed"
+
+
+    PFMs = args.OUT_PREFIX + "PFM.txt"
+    PFMs_report = args.OUT_PREFIX + "report.txt"
+
     
     bw_flanking_len = 2000
     input_bed = args.OUT_PREFIX + "input_coordinates.bed"
@@ -131,7 +136,7 @@ def align_multivalent_sites( args, log ):
 
 
     #### Create aligned heatmaps
-    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_dir {align_dir} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID} --computeMatrix {computeMatrix_files_string} --repeats_info {overlapped_repeats} --meta_pfm_len {meta_PFM_len} --experiment_name {args.JOB_ID} --bw_labels {args.BW_LABELS} --bw_units {args.BW_UNITS} --input_bed {input_bed} --aligned_bed {align_pos_all_PFM} --footprint_tab {footprint_mat}"""
+    cmdline = f""" Rscript {args.script_path}/src/_R/_cluster_sequences_multivalent_sites.R --out_dir {align_dir} --cutoff {args.CUTOFF} --minsize {args.MINSIZE} --weighted_PFM {weighted_PFM} --ZF_binding_scores {ZF_binding_score} --align_num {align_num} --title {args.JOB_ID} --computeMatrix {computeMatrix_files_string} --repeats_info {overlapped_repeats} --meta_pfm_len {meta_PFM_len} --experiment_name {args.JOB_ID} --bw_labels {args.BW_LABELS} --bw_units {args.BW_UNITS} --input_bed {input_bed} --aligned_bed {align_pos_all_PFM} --footprint_tab {footprint_mat} --PFMs={PFMs} --PFMs_report={PFMs_report}"""
     utils.run_cmd(cmdline, log)
 
 
@@ -149,6 +154,9 @@ def align_multivalent_sites_fasta( args, log ):
     
     affimx_prefix = args.OUT_ALIGN_PREFIX + ".affimx"
     affimx_pos = affimx_prefix + ".position.txt"
+    
+    PFMs = args.OUT_PREFIX + "PFM.txt"
+    PFMs_report = args.OUT_PREFIX + "report.txt"
 
 
     #### Get length of meta PFM
@@ -164,6 +172,8 @@ def align_multivalent_sites_fasta( args, log ):
 
 
     #### Create aligned heatmaps
-    cmdline = f""" Rscript {args.script_path}/src/_R/_align_multivalent_sites_fasta.R --coordinates={affimx_pos} --weighted_PFM_scores={weighted_PFM} --fasta={args.TARGET_FASTA} --ZF_binding_scores={ZF_binding_score} --meta_pfm_len={meta_PFM_len} --out_dir={align_dir} --cutoff={args.CUTOFF} --minsize={args.MINSIZE} --experiment_name={args.JOB_ID} """
+    cmdline = f""" Rscript {args.script_path}/src/_R/_align_multivalent_sites_fasta.R --coordinates={affimx_pos} --weighted_PFM_scores={weighted_PFM} --fasta={args.TARGET_FASTA} --ZF_binding_scores={ZF_binding_score} --meta_pfm_len={meta_PFM_len} --out_dir={align_dir} --cutoff={args.CUTOFF} --minsize={args.MINSIZE} --experiment_name={args.JOB_ID} --PFMs={PFMs} --PFMs_report={PFMs_report}"""
 
     utils.run_cmd(cmdline, log)
+
+

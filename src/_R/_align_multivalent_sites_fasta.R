@@ -5,7 +5,19 @@ suppressPackageStartupMessages(library(ComplexHeatmap))
 library(stringi)
 library(data.table)
 library(optparse)
+library(ggh4x)
+library(patchwork)
+library(readr)
+library(ggseqlogo)
+library(assertr)
+library(matrixStats)
+library(reshape)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
 set.seed(1)
+
+
 
 
 ################################################################   Functions ####
@@ -91,6 +103,14 @@ option_list = list(
   
   make_option(c("-k", "--experiment_name"), type="character",
               default="ZNF160_YWP_A_AC40NTCCTTG_random_2000",
+              help=""),
+  
+  make_option(c("-r", "--PFMs"), type="character",
+            default="~/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/ZNF160_YWP_A_AC40NTCCTTG_random_2000_PFM.txt",
+              help=""),
+
+  make_option(c("-s", "--PFMs_report"), type="character",
+            default="~/repos/tools/RCADEEM/out/ZNF160_YWP_A_AC40NTCCTTG_random_2000/ZNF160_YWP_A_AC40NTCCTTG_random_2000_report.txt",
               help="")
   
   );
@@ -589,27 +609,171 @@ write.table( file = paste0( opt$out_prefix, "aligned_heatmap_ZF_and_seq.tab" ),
 
 
 
+############################################# Write seed and optimized PFMs ####
+## Read PFM report
+
+read_PFMs <- function( PFMs_filename ){
+  
+  # PFMs_filename <- opt$PFMs
+  PFMs <- read_lines( file = PFMs_filename)
+  PFM_names <- PFMs[ grepl( pattern = "Motif", x = PFMs ) ]
+  PFM_names <- gsub( "Motif\t", "", PFM_names )
+  PFM_names <- unlist( PFM_names )
+  # PFM_names <- gsub( "\\|opt", "", PFM_names )
+  # PFM_names
+
+  PFMs <- PFMs[ ! PFMs == "" ]
+  PFMs <- PFMs[ ! grepl( pattern = "TF\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "TF Name\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Gene\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Motif\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Family\t", x = PFMs ) ]
+  PFMs <- PFMs[ ! grepl( pattern = "Species\t", x = PFMs ) ]
+  
+  
+
+  PFMs[ PFMs == "Pos\tA\tC\tG\tT" ] <- "SEP"
+
+  split_PFMs <- strsplit(paste( PFMs, collapse = "\n" ), split = "SEP\n",
+                         fixed = FALSE, perl = FALSE, useBytes = FALSE)
+
+  split_PFMs <- unlist(split_PFMs)
+  split_PFMs <- split_PFMs[ !split_PFMs == "" ]
+
+  PFMs_list <- list()
+  
+  
+  for (i in 1:length(PFM_names)) {
+    
+    # i <- 1
+    tmp <- read.table(  text=split_PFMs[i],col.names=c("Pos","A", "C", "G", "T"))
+    tmp <- tmp[, c("A", "C", "G", "T")]
+    tmp$A <- as.numeric(tmp$A)
+    tmp$C <- as.numeric(tmp$C)
+    tmp$G <- as.numeric(tmp$G)
+    tmp$`T` <- as.numeric(tmp$`T`)
+
+    PFMs_list[[PFM_names[i]]] <- as.data.frame(tmp)
+    
+  }
+
+  return( PFMs_list  )
+}
+
+
+get_max_cumulative_per_pos <- function(mat, direction = "-"){
+  
+  if ( direction == "+" ){ mat[ mat < 0] <- 0 }
+  if ( direction == "-" ){ mat[ mat > 0] <- 0 }
+  
+  return( max(rowSums( abs( mat ) ) ) )
+}
+
+PFMs <- read_PFMs( PFMs_filename = opt$PFMs )
+
+## Get max number of PFM positions
+max_len <- list()
+for (i in 1:length(PFMs) ) { max_len[[i]] <- nrow(PFMs[[i]] ) }
+max_len <- as.integer( max(unlist(max_len)) )
 
 
 
+PFM_report <- as.data.frame( read.csv(file = opt$PFMs_report, sep = "\t" ) )
+PFM_report <- PFM_report[ PFM_report$MOTIF != "meta-PFM", ]
+
+## Add cluster (zfs used)
+PFM_report_ZFs <- str_split_fixed(str_split_fixed(PFM_report$MOTIF, ":", 2)[,2], "-", 2)
+PFM_report$name <- paste0( "zfs:", PFM_report_ZFs[,1], "_", PFM_report_ZFs[,2] )
 
 
 
+i <- 1
+motif_list <- list()
+for ( cluster in unique( data_ht$cluster ) ) {
+  
+  # cluster <- "zfs:1_3"
+  
+  pearson_r <- PFM_report[ PFM_report$name == cluster, "CORRELATION"]
+  pval <- PFM_report[ PFM_report$name == cluster, "CORRELATION_P"]
+  
+  pearson_r <- round(pearson_r, digits = 2)
+  pval <- round(pval, digits = 7)
+  
+  
+  cluster_id <- PFM_report[ PFM_report$name == cluster, "MOTIF"]
+  cluster_id_opt <- paste0( cluster_id, "|opt" ) 
+  
+  PFM_seed <- PFMs[[cluster_id]]
+  PFM_opt <- PFMs[[ cluster_id_opt ]]
+  
+  PFM_seed <- log10(PFM_seed*4)
+  PFM_opt <- log10(PFM_opt*4)
+  
+  seed_pos_lim <- get_max_cumulative_per_pos( PFM_seed, "+" )
+  seed_neg_lim <- get_max_cumulative_per_pos( PFM_seed, "-" )
+  opt_pos_lim <- get_max_cumulative_per_pos( PFM_opt, "+" )
+  opt_neg_lim <- get_max_cumulative_per_pos( PFM_opt, "-" )
+  
+  
+  PFM_seed[ PFM_seed > 0 ] <- PFM_seed[ PFM_seed > 0 ] / seed_pos_lim
+  PFM_seed[ PFM_seed < 0 ] <- PFM_seed[ PFM_seed < 0 ] / seed_neg_lim
+  
+  PFM_opt[ PFM_opt > 0 ] <- PFM_opt[ PFM_opt > 0 ] / opt_pos_lim
+  PFM_opt[ PFM_opt < 0 ] <- PFM_opt[ PFM_opt < 0 ] / opt_neg_lim
+  
+  
+  
+  
+  p_seed <- ggseqlogo(data = t( PFM_seed ), method ="custom", seq_type = "dna" ) + 
+    ggtitle( cluster_id ) +
+    labs(subtitle = paste0( "Pearson correlation: ", pearson_r, 
+                            "\n                  p-value: ", pval)) +
+    ggh4x::force_panelsizes(rows = unit(3, "cm"), cols = unit( 0.75 * nrow(PFM_seed), "cm"), respect = TRUE) +
+    theme( plot.background = NULL, plot.margin = unit(c(0,0,0,0), "cm"),
+      plot.title = element_text(face="bold"),
+          panel.border = element_rect(colour = "grey", fill=NA, size=0.5),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank() ) +
+    annotate("rect", alpha = 0.75, fill = "white",
+             xmin = 0.5, xmax = nrow(PFM_seed)+0.5, ymin = 0, ymax = -1) +
+    scale_y_continuous(label = c(-round(seed_neg_lim, 2), 0, round(seed_pos_lim, 2)),  
+                       breaks = c(-1, 0, 1), position = "left" ) + 
+    ylab("Seed") +
+    NULL
+  
+  
+  p_opt <- ggseqlogo(data = t( PFM_opt ), method ="custom", seq_type = "dna" ) + 
+    # ggtitle( paste0( "Optimized") ) +
+    ggh4x::force_panelsizes(rows = unit(3, "cm"), cols = unit(0.75 * nrow(PFM_seed), "cm"), respect = TRUE) +
+    theme( plot.background = NULL, plot.margin = unit(c(0,0,0,0), "cm"), 
+      panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    annotate("rect", alpha = 0.75, fill = "white",
+             xmin = 0.5, xmax = nrow(PFM_opt)+0.5, ymin = 0, ymax = -1) +
+    scale_y_continuous(label = c(-round(opt_neg_lim, 2), 0, round(opt_pos_lim, 2)), 
+                       breaks = c(-1, 0, 1), position = "left" ) + 
+    ylab("Optimized") +
+    NULL
+  
+  motif_list[[i]] <- gridExtra::arrangeGrob(grobs = list(p_seed, p_opt), 
+                                            name = "arrange", nrow = 2, ncol = 1, 
+                                            padding = unit(0, "line")  )
+  
+  i <- i + 1
+  }
 
+p_motif <- cowplot::plot_grid( plotlist = motif_list, 
+                               align = "v", axis = "l",
+                               nrow = length(motif_list), ncol = 1, 
+                               greedy = FALSE )
 
+ggsave(filename = paste0( opt$out_prefix, "motifs.pdf"),
+      plot = p_motif, 
+      width =  9 + max_len * 0.4,
+      height = 10 * length(motif_list),
+      units = "cm", limitsize = FALSE )
 
-
-
-
-
-
-
-
-
-
-
-
-
+#####
 
 
 
