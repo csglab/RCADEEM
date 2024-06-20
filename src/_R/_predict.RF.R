@@ -18,25 +18,32 @@
 #  along with ZifRC.  If not, see <http://www.gnu.org/licenses/>.
 #  
 #  ********************************************************************/
-
-rm(list = ls())
-
-#############################################################################
-
-# setwd("/home/bdogan/utilities/RCADE2/src/_R/")
-
+# library(ggplot2)
+library(optparse)
 library(randomForest)
 
-args <- commandArgs(trailingOnly = TRUE)
+########################################################   IN and load data ####
+option_list = list(
+  make_option(c("-a", "--predict_in"), type="character",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/tmp/test1_predict.in",
+              help=""),
+  make_option(c("-b", "--predict_out"), type="character",
+              default="/home/ahcorcha/repos/tools/RCADEEM/out/test_python/tmp/test1_predict.RF.out",
+              help=""),
+    make_option(c("-c", "--src_dir"), type="character",
+              default="/home/ahcorcha/repos/tools/RCADEEM/src/_R",
+              help="")
+  );
 
-inputDir <- paste0("./tmp/",args[1]) # replace this with inputDir <- "." if testing the script outside RCADE Shell
-srcDir <- "./src/_R" # replace this with srcDir <- "." if testing the script outside RCADE Shell
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser); rm(option_list, opt_parser)
 
-data <- read.csv(paste0(inputDir,"/_predict.in"),sep="\t")
 
-# srcDir <- "."
-# inputDir <- "/home/bdogan/utilities/RCADE2/tmp/jobQ96SR6"
-# data <- read.csv(paste0(inputDir,"/_predict.in"),sep="\t")
+srcDir <- opt$src_dir
+
+data <- read.csv( opt$predict_in,sep="\t")
+
+
 
 nofCol <- ncol(data)
 
@@ -397,7 +404,7 @@ for (i in 1:12 )
 #write.table(data, file = "_predict.RF.out",sep="\t",row.names=F)
 
 
-write.table(data,file=paste0(inputDir,"/_predict.RF.out"),sep="\t",row.names=F)
+write.table(data,file=opt$predict_out,sep="\t",row.names=F)
 
 
 rm(covariates)

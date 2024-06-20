@@ -35,7 +35,7 @@ using namespace std;
 // ************************************************ macro definitions
 
 // constants
-#define MAX_MOTIFS				100
+#define MAX_MOTIFS				200
 #define MAX_MOTIF_LENGTH		50
 #define MAX_STATES				(1+2*MAX_MOTIFS*MAX_MOTIF_LENGTH)
 #define MAX_LINE_LENGTH			100000

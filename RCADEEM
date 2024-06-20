@@ -1,0 +1,136 @@
+#!/bin/env python3
+"""
+docstring sdfsdf
+"""
+import argparse
+import os
+import sys
+from src._python import RCADEEM
+from src._python import align_multivalent_sites
+import os.path
+
+parser = argparse.ArgumentParser(description='')
+
+parser.add_argument("--meme_lib_exec_meme_dir", dest="MEME_DIR", 
+                    action="store", default="none", help="")
+
+parser.add_argument("--task", dest="TASK",
+                    action="store", default="default_none",
+                    nargs="*", help="tasks: RCADEEM, HEATMAP")
+
+parser.add_argument("--job_ID", dest="JOB_ID", action="store",
+                    default="default_none",
+                    help='Experiment ID. ex: CTCF_rep2_HEK293')
+
+parser.add_argument("--out_dir", dest="OUT_DIR", action="store",
+                    default="./out/test_python", help="IN_DIR")
+
+####################  Input Files  ####################
+parser.add_argument("--C2H2_ZFP_fasta", dest="ZFP_FA", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--target_bed", dest="TARGET_BED", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--target_fasta", dest="TARGET_FASTA", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--genome_fasta", dest="GENOME_FA", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--chr_sizes", dest="CHR_SIZES", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--cutoff", dest="CUTOFF", action="store",
+                    default="0.2",
+                    help="")
+
+parser.add_argument("--minsize", dest="MINSIZE", action="store",
+                    default="0.1",
+                    help="")
+
+parser.add_argument("--bw", dest="BW_FILE", action="store",
+                    default="default_none", type=str,
+                    help="")
+
+parser.add_argument("--bw_labels", dest="BW_LABELS", action="store",
+                    default="default_none", type=str,
+                    help="")
+
+parser.add_argument("--bw_units", dest="BW_UNITS", action="store",
+                    default="default_none", type=str,
+                    help="")
+
+parser.add_argument("--ref_repeats", dest="REF_REPEATS", action="store",
+                    default="default_none",
+                    help="")
+
+parser.add_argument("--rcadeem_range", dest="RC_RANGE", action="store",
+                    default="100", type = str,
+                    help="")
+
+parser.add_argument("--bed_has_score", dest="BED_HAS_SCORE", action="store_true",
+                    help="the fourth column in the input bed files is a numeric score that will be shown in the aligned heatmap")
+
+parser.add_argument("--footprint_file", dest="FOOTPRINT", action="store",
+                    help="", default = "default_none")
+
+parser.add_argument("--footprint_file_type", dest="FOOTPRINT_TYPE", action="store",
+                    help="")
+
+args = parser.parse_args()
+        
+if __name__ == '__main__':
+
+    if args.MEME_DIR == "none":
+        args.MEME_DIR = "/home/ahcorcha/repos/tools/meme/libexec/meme-5.5.3"
+        # args.MEME_DIR = "/home/ahcorcha/tools/meme/libexec/meme-5.4.1"
+ 
+    if not os.path.isfile(args.MEME_DIR+"/fasta-center") or \
+        not os.path.isfile(args.MEME_DIR+"/fasta-dinucleotide-shuffle"):
+        print("ERROR: fasta-center or fasta-dinucleotide-shuffle not found")
+        exit(2)
+
+
+    args.script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+
+
+    args.OUT_DIR = args.OUT_DIR + "/" + args.JOB_ID
+
+    if not os.path.exists(args.OUT_DIR): os.makedirs(args.OUT_DIR)
+
+    args.OUT_PREFIX = args.OUT_DIR + "/" + args.JOB_ID + "_"
+
+
+    log = open(args.OUT_PREFIX + "commands.log", "w")
+    log.write("Start test\n")
+
+
+    if "RCADEEM" in args.TASK:
+        print("Running RCADEEM ...")
+        RCADEEM.RCADEEM( args, log )
+
+
+    if "HEATMAP" in args.TASK:
+
+        input_bed = args.OUT_PREFIX + "input_coordinates.bed"
+        # input_fasta = args.OUT_PREFIX + "input_sequences.fasta"
+
+        if os.path.isfile( input_bed ):
+            print("Align multivalent sites (genomic) ...")
+            align_multivalent_sites.align_multivalent_sites( args, log )
+    
+
+        if os.path.isfile( args.TARGET_FASTA ):
+            print("Align multivalent sites (fasta) ...")
+            align_multivalent_sites.align_multivalent_sites_fasta( args, log )
+
+
+    log.write("\n\n")
+    log.close()
+    
