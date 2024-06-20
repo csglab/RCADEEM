@@ -1,4 +1,4 @@
-TARGET = ../AffiMx
+TARGET = ../../bin/AffiMx
 CPP01 = commandline
 CPP02 = main
 CPP03 = misc
