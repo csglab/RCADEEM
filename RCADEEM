@@ -14,74 +14,74 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument("--meme_lib_exec_meme_dir", dest="MEME_DIR", 
                     action="store", default="none", help="")
 
-parser.add_argument("--task", dest="TASK",
+parser.add_argument("--task", dest="TASK", 
                     action="store", default="default_none",
-                    nargs="*", help="tasks: RCADEEM, HEATMAP")
+                    nargs="*", help="Task: RCADEEM and/or HEATMAP (separated by a comma) the former runs the main algoritm and the latter visualizes the binding modes as a heatmap of the original sequences.")
 
 parser.add_argument("--job_ID", dest="JOB_ID", action="store",
                     default="default_none",
                     help='Experiment ID. ex: CTCF_rep2_HEK293')
 
 parser.add_argument("--out_dir", dest="OUT_DIR", action="store",
-                    default="./out/test_python", help="IN_DIR")
+                    default="./out/CTCF_demo", help="Output directory.")
 
 ####################  Input Files  ####################
 parser.add_argument("--C2H2_ZFP_fasta", dest="ZFP_FA", action="store",
                     default="default_none",
-                    help="")
+                    help="Fasta file of the C2H2-ZF protein sequence.")
 
 parser.add_argument("--target_bed", dest="TARGET_BED", action="store",
                     default="default_none",
-                    help="")
+                    help="BED file specifying the sequences of interest, requires --genome_fasta argument.")
 
 parser.add_argument("--target_fasta", dest="TARGET_FASTA", action="store",
                     default="default_none",
-                    help="")
+                    help="FASTA file with the sequences of interest, mutually exclusive with --target_bed and --genome_fasta.")
 
 parser.add_argument("--genome_fasta", dest="GENOME_FA", action="store",
                     default="default_none",
-                    help="")
+                    help="See --target_bed.")
 
 parser.add_argument("--chr_sizes", dest="CHR_SIZES", action="store",
                     default="default_none",
-                    help="")
+                    help="Chromosome sizes for --genome_fasta.")
 
 parser.add_argument("--cutoff", dest="CUTOFF", action="store",
                     default="0.2",
-                    help="")
+                    help="In the Heatmap, exclude binding modes with HMM scores with fewer than --minzise entries that pass this cutoff.")
 
 parser.add_argument("--minsize", dest="MINSIZE", action="store",
                     default="0.1",
-                    help="")
+                    help="See cuttoff.")
 
 parser.add_argument("--bw", dest="BW_FILE", action="store",
                     default="default_none", type=str,
-                    help="")
+                    help="BIGWIG file, add a panel to the main heatmap (e.g. ChIP-seq counts). For multiple files, separate them by a comma (also applies to --bw_labels and --bw_units).")
 
 parser.add_argument("--bw_labels", dest="BW_LABELS", action="store",
                     default="default_none", type=str,
-                    help="")
+                    help="Labels for the --bw heatmap panel.")
 
 parser.add_argument("--bw_units", dest="BW_UNITS", action="store",
                     default="default_none", type=str,
-                    help="")
+                    help="Units for the --bw heatmap panel.")
 
 parser.add_argument("--ref_repeats", dest="REF_REPEATS", action="store",
                     default="default_none",
-                    help="")
+                    help="File with repeat element coordinates, add a panel to the main Heatmap.")
 
 parser.add_argument("--rcadeem_range", dest="RC_RANGE", action="store",
                     default="100", type = str,
-                    help="")
+                    help="Range for the sequences to be included for RCADEEM, measure from the center of the fasta or bed files (--target_fasta or --target_bed).")
 
 parser.add_argument("--bed_has_score", dest="BED_HAS_SCORE", action="store_true",
-                    help="the fourth column in the input bed files is a numeric score that will be shown in the aligned heatmap")
+                    help="The fourth column in the input bed files is a numeric score that will be shown in the aligned heatmap.")
 
 parser.add_argument("--footprint_file", dest="FOOTPRINT", action="store",
-                    help="", default = "default_none")
+                    help="BIGWIG with a Footprint signal. Add a panel to the main Heatmap.", default = "default_none")
 
-parser.add_argument("--footprint_file_type", dest="FOOTPRINT_TYPE", action="store",
-                    help="")
+# parser.add_argument("--footprint_file_type", dest="FOOTPRINT_TYPE", action="store",
+#                    help="")
 
 args = parser.parse_args()
         
