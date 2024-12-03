@@ -47,6 +47,8 @@ RCADEEM --task RCADEEM,HEATMAP \
           --chr_sizes ${CHR_SIZES}
 ```
 
+You can download the demo output from: https://usegalaxy.org/u/ahcorcha/h/rcadeemdemoout
+
 
 ## Input files
 
