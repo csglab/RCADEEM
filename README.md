@@ -20,7 +20,7 @@ RCADEEM uses a hidden Markov model (HMM) to represent multiple, alternative DNA 
 git clone https://github.com/csglab/RCADEEM.git
 ```
 After cloning:
-1. You can add the line export PATH=${cloning_directory}/RCADEEM:$PATH to your .bashrc file.
+1. You can add the line `export PATH=${cloning_directory}/RCADEEM:$PATH` to your `.bashrc` file.
 2. `cd` to the repository directory and run the `make` command.
 3. Change the value of line `91` of the `RCADEEM` script to the path to the executable MEME files (`fasta-center` and `fasta-dinucleotide-shuffle`). Alternatively, you can provide the path via the `--meme_lib_exec_meme_dir` argument.
 
