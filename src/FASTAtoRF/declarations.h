@@ -1,23 +1,23 @@
-// Copyright 2014 Hamed S. Najafabadi
-
-/********************************************************************
-
-This file is part of FASTAtoRF.
-
-FASTAtoRF is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-FASTAtoRF is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with FASTAtoRF.  If not, see <http://www.gnu.org/licenses/>.
-
-********************************************************************/
+//=======================================================================
+// Authors: Aldo Hernandez-Corchado, Hamed S. Najafabadi
+//
+// Copyright 2026 Aldo Hernandez-Corchado, Hamed S. Najafabadi
+//
+// This file is part of RCADEEM.
+//
+// RCADEEM is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// RCADEEM is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with RCADEEM.  If not, see <http://www.gnu.org/licenses/>.
+//=======================================================================
 
 #ifndef _H_DECLARATIONS // this is to make sure that this file will not be included twice
 //*******************************************************************
