@@ -1,5 +1,7 @@
 # RCADEEM: Recognition Code-Assisted Discovery of regulatory Elements by Expectation-Maximization
 
+[![DOI](https://zenodo.org/badge/92754725.svg)](https://doi.org/10.5281/zenodo.20847442)
+
 RCADEEM uses a hidden Markov model (HMM) to represent multiple, alternative DNA motifs, each corresponding to the binding preference of a zinc finger array.
 
 ## Requirements
