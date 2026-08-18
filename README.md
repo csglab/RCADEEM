@@ -62,8 +62,7 @@ You can download the demo output from: https://usegalaxy.org/u/ahcorcha/h/rcadee
 
 ## **Citation**
 
-Jolma, A., Hernandez-Corchado, A., Yang, A. W. H., Fathi, A., Laverty, K. U., Brechalov, A., Razavi, R., Albu, M., Zheng, H., Kulakovskiy, I. V., Najafabadi, H. S., & Hughes, T. R. (2024). GHT-SELEX demonstrates unexpectedly high intrinsic sequence specificity and complex DNA binding of many human transcription factors. BioRxiv, 2024.11.11.618478. https://doi.org/10.1101/2024.11.11.618478
-
+Jolma, A., Hernandez-Corchado, A., Yang, A. W. H., Fathi, A., Laverty, K. U., Brechalov, A., Razavi, R., Albu, M., Zheng, H., Kulakovskiy, I. V., Najafabadi, H. S., & Hughes, T. R. (2026). GHT-SELEX demonstrates unexpectedly high intrinsic sequence specificity and complex DNA binding of many human transcription factors. Nature Methods, 1–11. https://doi.org/10.1038/s41592-026-03177-9
 
 
 
